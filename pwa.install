@@ -9,4 +9,6 @@ function pwa_uninstall() {
   }
 }
 
-
+function pwa_install() {
+  variable_set('pwa_swcache_exclude', implode("\n", ['admin/.*', '/edit$']));
+}
