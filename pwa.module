@@ -54,6 +54,7 @@ function pwa_menu() {
 
 
 function pwa_manifest_file() {
+  $path = drupal_get_path('module', 'pwa');
   $manifest = [
     'name' => variable_get('pwa_name', variable_get('site_name')),
     'short_name' => variable_get('pwa_short_name', variable_get('site_name')),
@@ -62,7 +63,23 @@ function pwa_manifest_file() {
     'start_url' => variable_get('pwa_start_url', '/'),
     'orientation' => variable_get('pwa_orientation', 'portrait'),
     'display' => variable_get('pwa_display', 'standalone'),
-    'icons' => variable_get('pwa_icons', ''),
+    // @todo make configurable.
+    'icons' => [
+      [
+        'src' => url($path . '/assets/druplicon-144.png'),
+        'sizes' => '144x144',
+        'type' => 'image/png',
+      ],
+      [
+        'src' => url($path . '/assets/druplicon-small.png'),
+        'sizes' => '175x200',
+        'type' => 'image/png',
+      ],
+      [
+        'src' => url($path . '/assets/druplicon-vector.svg'),
+        'type' => 'image/svg+xml',
+      ],
+    ],
   ];
   return drupal_json_encode($manifest);
 }
@@ -91,7 +108,7 @@ function pwa_preprocess_html(&$variables) {
 
   $path = drupal_get_path('module', 'pwa');
   $manifest_tag = [
-    '#tag' => 'meta',
+    '#tag' => 'link',
     '#attributes' => [
       'rel' => 'manifest',
       'href' => variable_get('pwa_filecache_manifest', ''),
