@@ -88,12 +88,8 @@ self.addEventListener('fetch', function(event) {
     var resp = caches.open(CURRENT_CACHE)
       .then(strategies[CACHE_STRATEGY])
       .catch(function(error) {
-        // This catch() will handle exceptions that arise from the match() or fetch() operations.
-        // Note that a HTTP error response (e.g. 404) will NOT trigger an exception.
-        // It will return a normal response object that has the appropriate error code set.
-        console.error('  Error in fetch handler:', error);
-
-        throw error;
+        // Display a default page when trying to browse offline.
+        return caches.match('/offline');
       });
     event.respondWith(resp);
   }

@@ -29,6 +29,14 @@ function pwa_menu() {
     'page callback' => 'pwa_serviceworker_file_data',
     'access arguments' => ['access pwa'],
     'delivery callback' => 'pwa_deliver_js_file',
+    'file' => 'pwa.pages.inc',
+    'type' => MENU_CALLBACK,
+  ];
+
+  $items['offline'] = [
+    'page callback' => 'pwa_offline_page',
+    'access arguments' => ['access content'],
+    'file' => 'pwa.pages.inc',
     'type' => MENU_CALLBACK,
   ];
 
@@ -60,11 +68,6 @@ function pwa_manifest_file() {
 }
 
 
-function pwa_deliver_js_file($page_callback_result) {
-  drupal_add_http_header('Content-Type', 'application/javascript');
-  print $page_callback_result;
-}
-
 function pwa_serviceworker_file() {
   $path = drupal_get_path('module', 'pwa');
   $sw = file_get_contents($path . '/js/serviceworker.js');
@@ -76,10 +79,6 @@ function pwa_serviceworker_file() {
   return str_replace(array_keys($replace), array_values($replace), $sw);
 }
 
-function pwa_serviceworker_file_data() {
-  $serviceworker = variable_get('pwa_filecache_serviceworker_data');
-  return $serviceworker;
-}
 
 
 /**
@@ -99,6 +98,18 @@ function pwa_preprocess_html(&$variables) {
     ],
   ];
   drupal_add_html_head($manifest_tag, 'manifest');
+
+  if (arg(0) !== 'offline') {
+    $prefetch_tag = [
+      '#tag' => 'link',
+      '#attributes' => [
+        'rel' => 'preload',
+        'href' => url('offline'),
+      ],
+    ];
+    drupal_add_html_head($prefetch_tag, 'prefetch');
+  }
+
   drupal_add_js(['pwa' => ['path' => '/serviceworker.js']], 'setting');
   // Inline it so we can put the serviceworker scope at /
   $variables['page']['#children'] .= '<script>' . file_get_contents($path . '/js/serviceworker-load.js') . '</script>';
