@@ -1,1 +1,4 @@
-name = Progressive web app
+name = Progressive Web App
+description = Make the website installable on mobile.
+core = 7.x
+

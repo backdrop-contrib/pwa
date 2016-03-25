@@ -1,0 +1,124 @@
+<?php
+/**
+ * @file
+ */
+
+
+/**
+ * Implements hook_permission().
+ */
+function pwa_permission() {
+  return [
+    'administer pwa' => [
+      'title' => t('Administer Progressive Web App configuration'),
+      'restrict access' => TRUE,
+    ],
+    'access pwa' => [
+      'title' => t('Access Progressive Web App'),
+    ],
+  ];
+}
+
+/**
+ * Implements hook_menu().
+ */
+function pwa_menu() {
+  $items = [];
+
+  $items['serviceworker.js'] = [
+    'page callback' => 'pwa_serviceworker_file_data',
+    'access arguments' => ['access pwa'],
+    'delivery callback' => 'pwa_deliver_js_file',
+    'type' => MENU_CALLBACK,
+  ];
+
+  $items['admin/config/system/pwa'] = [
+    'title' => 'Progressive Web App configuration',
+    'description' => 'Configure manifest and service worker strategy.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => ['pwa_admin_configuration'],
+    'access arguments' => ['administer pwa'],
+    'file' => 'pwa.admin.inc',
+  ];
+
+  return $items;
+}
+
+
+function pwa_manifest_file() {
+  $manifest = [
+    'name' => variable_get('pwa_name', variable_get('site_name')),
+    'short_name' => variable_get('pwa_short_name', variable_get('site_name')),
+    'background_color' => variable_get('pwa_background_color', '#ffffff'),
+    'theme_color' => variable_get('pwa_theme_color', '#ffffff'),
+    'start_url' => variable_get('pwa_start_url', '/'),
+    'orientation' => variable_get('pwa_orientation', 'portrait'),
+    'display' => variable_get('pwa_display', 'standalone'),
+    'icons' => variable_get('pwa_icons', ''),
+  ];
+  return drupal_json_encode($manifest);
+}
+
+
+function pwa_deliver_js_file($page_callback_result) {
+  drupal_add_http_header('Content-Type', 'application/javascript');
+  print $page_callback_result;
+}
+
+function pwa_serviceworker_file() {
+  $path = drupal_get_path('module', 'pwa');
+  $sw = file_get_contents($path . '/js/serviceworker.js');
+  $replace = [
+    '[/*cacheConditionsExclude*/]' => drupal_json_encode((array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_exclude', '')))),
+    '1/*cacheVersion*/' => variable_get('pwa_swcache_version', 1),
+    '/*cacheStrategy*/' => variable_get('pwa_swcache_strategy', 'networkCacheFallback'),
+  ];
+  return str_replace(array_keys($replace), array_values($replace), $sw);
+}
+
+function pwa_serviceworker_file_data() {
+  $serviceworker = variable_get('pwa_filecache_serviceworker_data');
+  return $serviceworker;
+}
+
+
+/**
+ * Implements hook_page_alter().
+ */
+function pwa_preprocess_html(&$variables) {
+  if (!user_access('access pwa')) {
+    return;
+  }
+
+  $path = drupal_get_path('module', 'pwa');
+  $manifest_tag = [
+    '#tag' => 'meta',
+    '#attributes' => [
+      'rel' => 'manifest',
+      'href' => variable_get('pwa_filecache_manifest', ''),
+    ],
+  ];
+  drupal_add_html_head($manifest_tag, 'manifest');
+  drupal_add_js(['pwa' => ['path' => '/serviceworker.js']], 'setting');
+  // Inline it so we can put the serviceworker scope at /
+  $variables['page']['#children'] .= '<script>' . file_get_contents($path . '/js/serviceworker-load.js') . '</script>';
+}
+
+/**
+ * Implements hook_flush_caches().
+ */
+function pwa_flush_caches() {
+  // Create the manifest file.
+  $manifest_uri = file_unmanaged_save_data(pwa_manifest_file(), 'public://js/manifest.json', FILE_EXISTS_REPLACE);
+  $manifest_url = file_create_url($manifest_uri);
+  variable_set('pwa_filecache_manifest', str_replace($GLOBALS['base_url'], '', $manifest_url));
+
+  // Create the serviceworker file.
+  // Not used because the scope is messed up and requiring ppl to change their
+  // apache conf to add the Service-Worker-Allowed: true header is not good.
+  $serviceworker = pwa_serviceworker_file();
+  $serviceworker_uri = file_unmanaged_save_data($serviceworker, 'public://js/serviceworker-v' . variable_get('pwa_swcache_version', 1) . '.js', FILE_EXISTS_REPLACE);
+  $serviceworker_url = file_create_url($serviceworker_uri);
+  variable_set('pwa_filecache_serviceworker', str_replace($GLOBALS['base_url'], '', $serviceworker_url));
+  variable_set('pwa_filecache_serviceworker_data', $serviceworker);
+}

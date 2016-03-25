@@ -1,0 +1,12 @@
+<?php
+
+function pwa_uninstall() {
+  global $conf;
+  foreach ($conf as $key => $value) {
+    if (strpos($key, 'pwa_') === 0) {
+      variable_del($key);
+    }
+  }
+}
+
+
