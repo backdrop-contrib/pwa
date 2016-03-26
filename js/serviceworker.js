@@ -57,6 +57,10 @@ self.addEventListener('fetch', function(event) {
     return !condition.test(event.request.url);
   }
 
+  function catchOffline(error) {
+    return caches.match('/offline');
+  }
+
   var strategies = {
     networkCacheFallback: function (cache) {
       return fetch(event.request)
@@ -67,7 +71,7 @@ self.addEventListener('fetch', function(event) {
           return response;
         })
         .catch(function() {
-          return cache.match(event.request);
+          return cache.match(event.request).catch(catchOffline);
         });
     },
     staleWhileRevalidate: function (cache) {
@@ -80,18 +84,20 @@ self.addEventListener('fetch', function(event) {
                 cache.put(event.request, networkResponse.clone());
               }
               else {
-                console.log('dont cache', networkResponse.status);
+                console.log("Don't cache ", networkResponse.status);
               }
               return networkResponse;
             });
           return response || fetchPromise;
-        });
+        })
+        .catch(catchOffline);
     },
     cacheNetworkFallback: function (cache) {
       return cache.match(event.request)
         .then(function(response) {
           return response || fetch(event.request);
-        });
+        })
+        .catch(catchOffline);
     }
   };
 
@@ -99,9 +105,8 @@ self.addEventListener('fetch', function(event) {
   if (event.request.method === 'GET' && CACHE_EXCLUDE.every(urlNotExcluded)) {
     var resp = caches.open(CURRENT_CACHE)
       .then(strategies[CACHE_STRATEGY])
-      .catch(function(error) {
-        // Display a default page when trying to browse offline.
-        return caches.match('/offline');
+      .catch(function (error) {
+        // Oups.
       });
     event.respondWith(resp);
   }
