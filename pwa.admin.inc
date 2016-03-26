@@ -103,7 +103,6 @@ function pwa_admin_configuration() {
       'networkCacheFallback' => t('Network, falling back to cache'),
       'staleWhileRevalidate' => t('Stale while revalidate'),
       'cacheNetworkFallback' => t('Cache, falling back to network'),
-      'cacheThenNetwork' => t('Cache then network'),
     ],
     '#desctiption' => t("As seen in @url.", ['@url' => l('The offline cookbook', 'https://jakearchibald.com/2014/offline-cookbook/')]),
     '#default_value' => variable_get('pwa_swcache_strategy', 'networkCacheFallback'),

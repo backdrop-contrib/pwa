@@ -58,17 +58,14 @@ self.addEventListener('fetch', function(event) {
   }
 
   var strategies = {
-    cacheThenNetwork: function(cache) {
+    networkCacheFallback: function (cache) {
       return fetch(event.request)
         .then(function(response) {
           if (response.status < 300) {
             cache.put(event.request, response.clone());
           }
           return response;
-        });
-    },
-    networkCacheFallback: function (cache) {
-      return fetch(event.request)
+        })
         .catch(function() {
           return cache.match(event.request);
         });
