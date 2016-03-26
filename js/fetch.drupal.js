@@ -13,6 +13,33 @@
 self.addEventListener('fetch', function (event) {
 
   /**
+   * Tells if an asset should be cached.
+   *
+   * @param {string} assetUrl
+   *
+   * @return {boolean}
+   */
+  function isCacheableAsset(assetUrl) {
+    // Cache all CSS and JS files.
+    var cacheableAsset = /\.(js|css)\??/;
+    if (cacheableAsset.test(assetUrl)) {
+      return true;
+    }
+
+    // If the URL looks like an image, check if it's in the cached urls.
+    if (isImageUrl.test(assetUrl)) {
+      var parts = assetUrl.split('://');
+      var hostname = parts[1].split('/', 1)[0];
+
+      return CACHE_URLS.some(function (url) {
+        return assetUrl === parts[0] + '://' + hostname + url;
+      });
+    }
+    // Cache by default.
+    return true;
+  }
+
+  /**
    * Helper to make sure we don't cache http errors.
    *
    * @param {Response} response
@@ -20,18 +47,13 @@ self.addEventListener('fetch', function (event) {
    * @return {boolean}
    */
   function isCacheableResponse(response) {
-    var statusOK = response.status < 300;
-    var contentTypeOK = !isImageUrl.test(response.url);
+    // Don't cache HTTP errors or redirects.
+    if (response.status >= 300) {
+      return false;
+    }
 
-    // This make sure we can still cache images with CACHE_URLS.
-    var responseUrl = response.url;
-    var parts = responseUrl.split('://');
-    var hostname = parts[1].split('/', 1)[0];
-    var isPreloaded = CACHE_URLS.some(function (url) {
-      return responseUrl === parts[0] + '://' + hostname + url;
-    });
-
-    return statusOK && (isPreloaded || contentTypeOK);
+    // If the response is opaque response.url will be null.
+    return isCacheableAsset(response.url || url);
   }
 
   /**
@@ -46,16 +68,22 @@ self.addEventListener('fetch', function (event) {
   function handleRequest(cache) {
     var promiseReturn;
 
-    // If it's an asset, look in the cache and implement stale while revalidate.
-    if (isCacheableAsset.test(url)) {
+    // If it's an asset: stale while revalidate.
+    if (isCacheableAsset(url)) {
       promiseReturn = cache
         .match(event.request)
         .then(handleCacheableAssetResponse.bind(cache));
     }
+    // Non-cacheable images: no cache.
+    else if (isImageUrl.test(url)) {
+      promiseReturn = fetch(event.request)
+        .catch(catchOfflineImage);
+    }
+    // Other ressources: network with cache fallback.
     else {
       promiseReturn = fetch(event.request)
         .then(handleResponse.bind(cache))
-        .catch(handleResponseError.bind(cache));
+        .catch(handleOffline.bind(cache));
     }
 
     return promiseReturn;
@@ -75,24 +103,14 @@ self.addEventListener('fetch', function (event) {
   }
 
   /**
-   * When the main response fails because user is offline.
+   * Serve offline page.
    *
-   * Try to serve the request from the cache, serve the default offline page
-   * if request is not in cache.
+   * @param error
    *
-   * @param {*} error
+   * @return {Promise}
    */
-  function handleResponseError(error) {
-    var response = this.match(event.request);
-
-    if (isImageUrl.test(url)) {
-      response.catch(catchOfflineImage);
-    }
-    else {
-      response.catch(catchOffline);
-    }
-
-    return response;
+  function handleOffline(error) {
+    return this.match(event.request).catch(catchOffline);
   }
 
   /**
@@ -125,8 +143,6 @@ self.addEventListener('fetch', function (event) {
   }
 
   var url = event.request.url;
-  // Allow cache assets with query strings.
-  var isCacheableAsset = /\.(js|css)\??/;
   var isImageUrl = /\.(jpe?g|png|gif|svg|webp)\??/;
   var isMethodGet = event.request.method === 'GET';
   var notExcluded = CACHE_EXCLUDE.every(urlNotExcluded(url));
@@ -136,9 +152,11 @@ self.addEventListener('fetch', function (event) {
     event.respondWith(caches
       .open(CURRENT_CACHE)
       .then(handleRequest)
+      /*
       .catch(function (error) {
         // Oups.
       })
+      */
     );
   }
   else {
