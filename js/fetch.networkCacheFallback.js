@@ -16,7 +16,7 @@ self.addEventListener('fetch', function(event) {
         var ret = fetch(event.request)
           .then(function(response) {
             // Don't cache images, instead serve a dummy image.
-            if (response.status < 300 && response.headers.get('Content-type').indexOf('image/') === 0) {
+            if (response.status < 300) {
               cache.put(event.request, response.clone());
             }
             return response;

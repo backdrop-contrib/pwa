@@ -21,22 +21,19 @@ self.addEventListener('fetch', function (event) {
    */
   function isCacheableAsset(assetUrl) {
     // Cache all CSS and JS files.
-    var cacheableAsset = /\.(js|css)\??/;
-    if (cacheableAsset.test(assetUrl)) {
+    if (isAssetUrl.test(assetUrl)) {
+      // If the URL looks like an image, check if it's in the cached urls.
+      if (isImageUrl.test(assetUrl)) {
+        var url = new URL(assetUrl);
+        var assetPath = assetUrl.replace(url.origin, '');
+
+        return CACHE_URLS.some(function (url) {
+          return assetPath === url;
+        });
+      }
       return true;
     }
-
-    // If the URL looks like an image, check if it's in the cached urls.
-    if (isImageUrl.test(assetUrl)) {
-      var parts = assetUrl.split('://');
-      var hostname = parts[1].split('/', 1)[0];
-
-      return CACHE_URLS.some(function (url) {
-        return assetUrl === parts[0] + '://' + hostname + url;
-      });
-    }
-    // Cache by default.
-    return true;
+    return false;
   }
 
   /**
@@ -48,12 +45,7 @@ self.addEventListener('fetch', function (event) {
    */
   function isCacheableResponse(response) {
     // Don't cache HTTP errors or redirects.
-    if (response.status >= 300) {
-      return false;
-    }
-
-    // If the response is opaque response.url will be null.
-    return isCacheableAsset(response.url || url);
+    return response.status < 300;
   }
 
   /**
@@ -110,7 +102,15 @@ self.addEventListener('fetch', function (event) {
    * @return {Promise}
    */
   function handleOffline(error) {
-    return this.match(event.request).catch(catchOffline);
+    return this
+      .match(event.request)
+      .then(function (response) {
+        if (!response) {
+          throw new Error('Not in cache');
+        }
+        return response;
+      })
+      .catch(catchOffline);
   }
 
   /**
@@ -122,7 +122,6 @@ self.addEventListener('fetch', function (event) {
   function handleCacheableAssetResponse(response) {
 
     /**
-     *
      * @param {Response} networkResponse
      *
      * @return {Promise}
@@ -143,6 +142,7 @@ self.addEventListener('fetch', function (event) {
   }
 
   var url = event.request.url;
+  var isAssetUrl = /\.(js|css|jpe?g|png|gif|svg|webp)\??/;
   var isImageUrl = /\.(jpe?g|png|gif|svg|webp)\??/;
   var isMethodGet = event.request.method === 'GET';
   var notExcluded = CACHE_EXCLUDE.every(urlNotExcluded(url));
@@ -152,11 +152,6 @@ self.addEventListener('fetch', function (event) {
     event.respondWith(caches
       .open(CURRENT_CACHE)
       .then(handleRequest)
-      /*
-      .catch(function (error) {
-        // Oups.
-      })
-      */
     );
   }
   else {
