@@ -81,13 +81,19 @@ function pwa_admin_configuration() {
     '#type' => 'textarea',
     '#title' => t('Exclude URLs patterns'),
     '#description' => t("One javascript regex per line."),
-    '#default_value' => variable_get('pwa_swcache_exclude', implode("\n", ['admin/.*', '/edit$'])),
+    '#default_value' => variable_get('pwa_swcache_exclude', implode("\n", [
+      '/serviceworker.js$',
+      'admin/.*',
+    ])),
   ];
   $form['sw']['pwa_swcache_urls'] = [
     '#type' => 'textarea',
     '#title' => t('Urls to cache on install'),
     '#description' => t("Cache those URLs when the service worker is installed."),
-    '#default_value' => variable_get('pwa_swcache_urls', implode("\n", ['/', '/offline'])),
+    '#default_value' => variable_get('pwa_swcache_urls', implode("\n", [
+      '/',
+      '/offline',
+    ])),
   ];
   $form['sw']['pwa_swcache_version'] = [
     '#type' => 'textfield',
@@ -96,16 +102,18 @@ function pwa_admin_configuration() {
     '#size' => 1,
     '#default_value' => variable_get('pwa_swcache_version', 1),
   ];
-  $form['sw']['pwa_swcache_strategy'] = [
+  // @todo use plugins, and plugins config forms.
+  $strategies = pwa_get_fetch_info();
+  $options = [];
+  foreach ($strategies as $name => $infos) {
+    $options[$name] = $infos['label'];
+  }
+  $form['sw']['pwa_swcache_fetch_strategy'] = [
     '#type' => 'select',
     '#title' => t('Cache strategy'),
-    '#options' => [
-      'networkCacheFallback' => t('Network, falling back to cache'),
-      'staleWhileRevalidate' => t('Stale while revalidate'),
-      'cacheNetworkFallback' => t('Cache, falling back to network'),
-    ],
+    '#options' => $options,
     '#desctiption' => t("As seen in @url.", ['@url' => l('The offline cookbook', 'https://jakearchibald.com/2014/offline-cookbook/')]),
-    '#default_value' => variable_get('pwa_swcache_strategy', 'networkCacheFallback'),
+    '#default_value' => variable_get('pwa_swcache_fetch_strategy', 'drupal'),
   ];
 
   $form = system_settings_form($form);

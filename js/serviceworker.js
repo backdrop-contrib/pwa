@@ -12,7 +12,6 @@
 // updated service worker is activated.
 var CACHE_VERSION = 1/*cacheVersion*/;
 var CACHE_EXCLUDE = [/*cacheConditionsExclude*/].map(function (r) {return new RegExp(r);});
-var CACHE_STRATEGY = '/*cacheStrategy*/';
 var CACHE_URLS = [/*cacheUrls*/];
 
 var CURRENT_CACHE = 'all-cache-v' + CACHE_VERSION;
@@ -26,7 +25,6 @@ self.addEventListener('install', function (event) {
   }
   event.waitUntil(Promise.all(tasks));
 });
-
 
 self.addEventListener('activate', function(event) {
   // Delete all caches that are not CURRENT_CACHE.
@@ -47,70 +45,30 @@ self.addEventListener('activate', function(event) {
   event.waitUntil(Promise.all(tasks));
 });
 
+/**
+ * @todo move that when we start using plugins.
+ *
+ * @param {string} url
+ *
+ * @return {Function}
+ */
+function urlNotExcluded(url) {
+  return function (condition) {
+    return !condition.test(url);
+  }
+}
 
 /**
- * Cache strategies from: https://jakearchibald.com/2014/offline-cookbook/
+ * Default offline page.
+ *
+ * @param {object} error
+ *
+ * @return {Response}
  */
-self.addEventListener('fetch', function(event) {
+function catchOffline(error) {
+  return caches.match('/offline');
+}
 
-  function urlNotExcluded(condition) {
-    return !condition.test(event.request.url);
-  }
+// Fetch strategy.
 
-  function catchOffline(error) {
-    return caches.match('/offline');
-  }
-
-  var strategies = {
-    networkCacheFallback: function (cache) {
-      return fetch(event.request)
-        .then(function(response) {
-          if (response.status < 300) {
-            cache.put(event.request, response.clone());
-          }
-          return response;
-        })
-        .catch(function() {
-          return cache.match(event.request).catch(catchOffline);
-        });
-    },
-    staleWhileRevalidate: function (cache) {
-      return cache.match(event.request)
-        .then(function(response) {
-          var fetchPromise = fetch(event.request)
-            .then(function (networkResponse) {
-              // Don't cache redirects or errors.
-              if (networkResponse.status < 300) {
-                cache.put(event.request, networkResponse.clone());
-              }
-              else {
-                console.log("Don't cache ", networkResponse.status);
-              }
-              return networkResponse;
-            });
-          return response || fetchPromise;
-        })
-        .catch(catchOffline);
-    },
-    cacheNetworkFallback: function (cache) {
-      return cache.match(event.request)
-        .then(function(response) {
-          return response || fetch(event.request);
-        })
-        .catch(catchOffline);
-    }
-  };
-
-  // Make sure the url is one we don't exclude from cache.
-  if (event.request.method === 'GET' && CACHE_EXCLUDE.every(urlNotExcluded)) {
-    var resp = caches.open(CURRENT_CACHE)
-      .then(strategies[CACHE_STRATEGY])
-      .catch(function (error) {
-        // Oups.
-      });
-    event.respondWith(resp);
-  }
-  else {
-    console.log('Ignored ', event.request.url);
-  }
-});
+/*fetchStrategy*/
