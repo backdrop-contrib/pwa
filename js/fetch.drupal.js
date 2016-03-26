@@ -12,10 +12,6 @@
  */
 self.addEventListener('fetch', function (event) {
 
-  function responseIsImage(response) {
-    return response.headers.get('Content-type').indexOf('image/') === 0;
-  }
-
   /**
    * Helper to make sure we don't cache http errors.
    *
@@ -25,7 +21,7 @@ self.addEventListener('fetch', function (event) {
    */
   function isCacheableResponse(response) {
     var statusOK = response.status < 300;
-    var contentTypeOK = !responseIsImage(response);
+    var contentTypeOK = !isImageUrl.test(response.url);
 
     // This make sure we can still cache images with CACHE_URLS.
     var responseUrl = response.url;
