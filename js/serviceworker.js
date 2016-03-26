@@ -11,14 +11,27 @@
 // flow and the old cache(s) will be purged as part of the activate event handler when the
 // updated service worker is activated.
 var CACHE_VERSION = 1/*cacheVersion*/;
-var CURRENT_CACHE = 'all-cache-v' + CACHE_VERSION;
 var CACHE_EXCLUDE = [/*cacheConditionsExclude*/].map(function (r) {return new RegExp(r);});
 var CACHE_STRATEGY = '/*cacheStrategy*/';
+var CACHE_URLS = [/*cacheUrls*/];
+
+var CURRENT_CACHE = 'all-cache-v' + CACHE_VERSION;
+
+// Perform install steps
+self.addEventListener('install', function (event) {
+  // Use the service woker ASAP.
+  var tasks = [self.skipWaiting()];
+  if (CACHE_URLS.length) {
+    tasks.push(caches.open(CURRENT_CACHE).then(function (cache) { return cache.addAll(CACHE_URLS); }));
+  }
+  event.waitUntil(Promise.all(tasks));
+});
 
 
 self.addEventListener('activate', function(event) {
   // Delete all caches that are not CURRENT_CACHE.
-  event.waitUntil(
+  var tasks = [
+    self.clients.claim(),
     caches.keys().then(function(cacheNames) {
       return Promise.all(
         cacheNames.map(function(cacheName) {
@@ -29,7 +42,9 @@ self.addEventListener('activate', function(event) {
         })
       );
     })
-  );
+  ];
+
+  event.waitUntil(Promise.all(tasks));
 });
 
 

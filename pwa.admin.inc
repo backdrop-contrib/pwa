@@ -10,7 +10,6 @@
 function pwa_admin_configuration() {
   $form = [];
 
-
   $form['manifest'] = [
     '#type' => 'fieldset',
     '#title' => t('Manifest'),
@@ -84,7 +83,12 @@ function pwa_admin_configuration() {
     '#description' => t("One javascript regex per line."),
     '#default_value' => variable_get('pwa_swcache_exclude', implode("\n", ['admin/.*', '/edit$'])),
   ];
-
+  $form['sw']['pwa_swcache_urls'] = [
+    '#type' => 'textarea',
+    '#title' => t('Urls to cache on install'),
+    '#description' => t("Cache those URLs when the service worker is installed."),
+    '#default_value' => variable_get('pwa_swcache_urls', implode("\n", ['/', '/offline'])),
+  ];
   $form['sw']['pwa_swcache_version'] = [
     '#type' => 'textfield',
     '#title' => t('Cache version'),
@@ -92,7 +96,6 @@ function pwa_admin_configuration() {
     '#size' => 1,
     '#default_value' => variable_get('pwa_swcache_version', 1),
   ];
-
   $form['sw']['pwa_swcache_strategy'] = [
     '#type' => 'select',
     '#title' => t('Cache strategy'),
@@ -106,7 +109,11 @@ function pwa_admin_configuration() {
     '#default_value' => variable_get('pwa_swcache_strategy', 'networkCacheFallback'),
   ];
 
-  return system_settings_form($form);
+  $form = system_settings_form($form);
+  // Wait for all the values to be saved before refreshing cache.
+  $form['#submit'][] = 'pwa_admin_configuration_submit';
+
+  return $form;
 }
 
 function pwa_admin_configuration_submit($form, &$form_state) {

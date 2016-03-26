@@ -1,14 +1,26 @@
 <?php
+/**
+ * @file
+ */
 
-function pwa_uninstall() {
-  global $conf;
-  foreach ($conf as $key => $value) {
-    if (strpos($key, 'pwa_') === 0) {
-      variable_del($key);
-    }
-  }
+
+/**
+ * Implements hook_install().
+ */
+function pwa_install() {
+  $directory = file_default_scheme() . '://pwa';
+  file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+
+  variable_set('pwa_swcache_exclude', implode("\n", ['/serviceworker.js$', 'admin/.*', '/edit$']));
+  variable_set('pwa_swcache_urls', implode("\n", ['/', '/offline']));
 }
 
-function pwa_install() {
-  variable_set('pwa_swcache_exclude', implode("\n", ['admin/.*', '/edit$']));
+/**
+ * Implements hook_uninstall().
+ */
+function pwa_uninstall() {
+  db_delete('variable')
+    ->condition('name', 'pwa_%', 'LIKE')
+    ->execute();
+  cache_clear_all('variables', 'cache_bootstrap');
 }

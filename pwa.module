@@ -3,7 +3,6 @@
  * @file
  */
 
-
 /**
  * Implements hook_permission().
  */
@@ -25,8 +24,9 @@ function pwa_permission() {
 function pwa_menu() {
   $items = [];
 
-  $items['serviceworker.js'] = [
+  $items['pwa/%/serviceworker.js'] = [
     'page callback' => 'pwa_serviceworker_file_data',
+    'page arguments' => [2],
     'access arguments' => ['access pwa'],
     'delivery callback' => 'pwa_deliver_js_file',
     'file' => 'pwa.pages.inc',
@@ -52,7 +52,11 @@ function pwa_menu() {
   return $items;
 }
 
-
+/**
+ * Generate the JSON of the manifest file.
+ *
+ * @return string
+ */
 function pwa_manifest_file() {
   $path = drupal_get_path('module', 'pwa');
   $manifest = [
@@ -81,22 +85,26 @@ function pwa_manifest_file() {
       ],
     ],
   ];
+  drupal_alter('pwa_manifest', $manifest);
   return drupal_json_encode($manifest);
 }
 
-
+/**
+ * Take the serviceworker template file and replace all the variables needed.
+ *
+ * @return string
+ */
 function pwa_serviceworker_file() {
   $path = drupal_get_path('module', 'pwa');
   $sw = file_get_contents($path . '/js/serviceworker.js');
   $replace = [
     '[/*cacheConditionsExclude*/]' => drupal_json_encode((array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_exclude', '')))),
+    '[/*cacheUrls*/]' => drupal_json_encode((array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_urls', '')))),
     '1/*cacheVersion*/' => variable_get('pwa_swcache_version', 1),
     '/*cacheStrategy*/' => variable_get('pwa_swcache_strategy', 'networkCacheFallback'),
   ];
   return str_replace(array_keys($replace), array_values($replace), $sw);
 }
-
-
 
 /**
  * Implements hook_page_alter().
@@ -116,37 +124,26 @@ function pwa_preprocess_html(&$variables) {
   ];
   drupal_add_html_head($manifest_tag, 'manifest');
 
-  if (arg(0) !== 'offline') {
-    $prefetch_tag = [
-      '#tag' => 'link',
-      '#attributes' => [
-        'rel' => 'preload',
-        'href' => url('offline'),
-      ],
-    ];
-    drupal_add_html_head($prefetch_tag, 'prefetch');
-  }
-
-  drupal_add_js(['pwa' => ['path' => '/serviceworker.js']], 'setting');
-  // Inline it so we can put the serviceworker scope at /
-  $variables['page']['#children'] .= '<script>' . file_get_contents($path . '/js/serviceworker-load.js') . '</script>';
+  drupal_add_js(['pwa' => ['path' => '/pwa/' . variable_get('pwa_swcache_version', 1) . '/serviceworker.js']], 'setting');
+  drupal_add_js($path . '/js/serviceworker-load.js', ['scope' => 'footer']);
 }
 
 /**
  * Implements hook_flush_caches().
  */
 function pwa_flush_caches() {
-  // Create the manifest file.
-  $manifest_uri = file_unmanaged_save_data(pwa_manifest_file(), 'public://js/manifest.json', FILE_EXISTS_REPLACE);
+  $scheme = file_default_scheme();
+  $directory =  $scheme . '://pwa';
+  file_prepare_directory($directory, FILE_CREATE_DIRECTORY);
+
+  // Create the manifest file, create a static file with all the data.
+  $manifest = pwa_manifest_file();
+  $manifest_uri = file_unmanaged_save_data($manifest, $scheme . '://pwa/manifest.json', FILE_EXISTS_REPLACE);
   $manifest_url = file_create_url($manifest_uri);
   variable_set('pwa_filecache_manifest', str_replace($GLOBALS['base_url'], '', $manifest_url));
 
-  // Create the serviceworker file.
-  // Not used because the scope is messed up and requiring ppl to change their
-  // apache conf to add the Service-Worker-Allowed: true header is not good.
-  $serviceworker = pwa_serviceworker_file();
-  $serviceworker_uri = file_unmanaged_save_data($serviceworker, 'public://js/serviceworker-v' . variable_get('pwa_swcache_version', 1) . '.js', FILE_EXISTS_REPLACE);
-  $serviceworker_url = file_create_url($serviceworker_uri);
-  variable_set('pwa_filecache_serviceworker', str_replace($GLOBALS['base_url'], '', $serviceworker_url));
-  variable_set('pwa_filecache_serviceworker_data', $serviceworker);
+  // Create the serviceworker file in cache so it can be served from a menu
+  // callback so additional headers can be sent with the file.
+  // @see pwa_deliver_js_file().
+  cache_set('pwa:serviceworker', pwa_serviceworker_file(), 'cache');
 }
