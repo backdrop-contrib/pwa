@@ -93,6 +93,7 @@ function pwa_admin_configuration() {
     '#default_value' => variable_get('pwa_swcache_urls', implode("\n", [
       '/',
       '/offline',
+      '/' . drupal_get_path('module', 'pwa') . '/assets/offline-image.png',
     ])),
   ];
   $form['sw']['pwa_swcache_version'] = [
@@ -112,7 +113,7 @@ function pwa_admin_configuration() {
     '#type' => 'select',
     '#title' => t('Cache strategy'),
     '#options' => $options,
-    '#desctiption' => t("As seen in @url.", ['@url' => l('The offline cookbook', 'https://jakearchibald.com/2014/offline-cookbook/')]),
+    '#description' => t("As seen in !url.", ['!url' => l('The offline cookbook', 'https://jakearchibald.com/2014/offline-cookbook/')]),
     '#default_value' => variable_get('pwa_swcache_fetch_strategy', 'drupal'),
   ];
 

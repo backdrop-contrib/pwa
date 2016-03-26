@@ -13,6 +13,8 @@
 var CACHE_VERSION = 1/*cacheVersion*/;
 var CACHE_EXCLUDE = [/*cacheConditionsExclude*/].map(function (r) {return new RegExp(r);});
 var CACHE_URLS = [/*cacheUrls*/];
+var CACHE_OFFLINE_IMAGE = 'offline-image.png';
+CACHE_URLS.push(CACHE_OFFLINE_IMAGE);
 
 var CURRENT_CACHE = 'all-cache-v' + CACHE_VERSION;
 
@@ -67,6 +69,17 @@ function urlNotExcluded(url) {
  */
 function catchOffline(error) {
   return caches.match('/offline');
+}
+
+/**
+ * Default offline Image.
+ *
+ * @param {object} error
+ *
+ * @return {Response}
+ */
+function catchOfflineImage(error) {
+  return caches.match(CACHE_OFFLINE_IMAGE);
 }
 
 // Fetch strategy.

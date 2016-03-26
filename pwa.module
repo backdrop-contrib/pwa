@@ -103,6 +103,7 @@ function pwa_serviceworker_file() {
     '[/*cacheUrls*/]' => drupal_json_encode((array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_urls', '')))),
     '1/*cacheVersion*/' => variable_get('pwa_swcache_version', 1),
     '/*fetchStrategy*/' => file_get_contents($fetch['file']),
+    'offline-image.png' => '/' . drupal_get_path('module', 'pwa') . '/assets/offline-image.png',
   ];
   return str_replace(array_keys($replace), array_values($replace), $sw);
 }

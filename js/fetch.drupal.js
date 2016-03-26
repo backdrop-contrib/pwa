@@ -12,6 +12,10 @@
  */
 self.addEventListener('fetch', function (event) {
 
+  function responseIsImage(response) {
+    return response.headers.get('Content-type').indexOf('image/') === 0;
+  }
+
   /**
    * Helper to make sure we don't cache http errors.
    *
@@ -21,7 +25,7 @@ self.addEventListener('fetch', function (event) {
    */
   function isCacheableResponse(response) {
     var statusOK = response.status < 300;
-    var contentTypeOK = response.headers.get('Content-type').indexOf('image/') !== 0;
+    var contentTypeOK = !responseIsImage(response);
 
     // This make sure we can still cache images with CACHE_URLS.
     var responseUrl = response.url;
@@ -83,8 +87,16 @@ self.addEventListener('fetch', function (event) {
    * @param {*} error
    */
   function handleResponseError(error) {
-    // If requesting an images, serve a dummy one.
-    return this.match(event.request).catch(catchOffline);
+    var response = this.match(event.request);
+
+    if (isImageUrl.test(url)) {
+      response.catch(catchOfflineImage);
+    }
+    else {
+      response.catch(catchOffline);
+    }
+
+    return response;
   }
 
   /**
@@ -119,6 +131,7 @@ self.addEventListener('fetch', function (event) {
   var url = event.request.url;
   // Allow cache assets with query strings.
   var isCacheableAsset = /\.(js|css)\??/;
+  var isImageUrl = /\.(jpe?g|png|gif|svg|webp)\??/;
   var isMethodGet = event.request.method === 'GET';
   var notExcluded = CACHE_EXCLUDE.every(urlNotExcluded(url));
 
