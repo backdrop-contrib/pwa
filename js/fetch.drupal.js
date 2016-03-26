@@ -35,7 +35,7 @@ self.addEventListener('fetch', function (event) {
       return responseUrl === parts[0] + '://' + hostname + url;
     });
 
-    return statusOK && !isPreloaded && contentTypeOK;
+    return statusOK && (isPreloaded || contentTypeOK);
   }
 
   /**
