@@ -11,8 +11,9 @@ function pwa_install() {
   $directory = file_default_scheme() . '://pwa';
   file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
 
-  variable_set('pwa_swcache_exclude', implode("\n", ['/serviceworker.js$', 'admin/.*', '/edit$']));
+  variable_set('pwa_swcache_exclude', implode("\n", ['admin/.*']));
   variable_set('pwa_swcache_urls', implode("\n", ['/', '/offline']));
+  pwa_flush_caches();
 }
 
 /**
