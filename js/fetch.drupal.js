@@ -13,27 +13,25 @@
 self.addEventListener('fetch', function (event) {
 
   /**
-   * Tells if an asset should be cached.
+   * Test if an asset should be cached.
    *
    * @param {string} assetUrl
    *
    * @return {boolean}
    */
   function isCacheableAsset(assetUrl) {
-    // Cache all CSS and JS files.
-    if (isAssetUrl.test(assetUrl)) {
-      // If the URL looks like an image, check if it's in the cached urls.
-      if (isImageUrl.test(assetUrl)) {
-        var url = new URL(assetUrl);
-        var assetPath = assetUrl.replace(url.origin, '');
-
-        return CACHE_URLS.some(function (url) {
-          return assetPath === url;
-        });
-      }
+    // Url is not an asset, don't cache.
+    if (!isAssetUrl.test(assetUrl)) {
+      return false;
+    }
+    // It's an asset but not an image, always cache.
+    if (!isImageUrl.test(assetUrl)) {
       return true;
     }
-    return false;
+    // If it looks like an image, only cache images that are part of
+    // assets cached on install.
+    var assetPath = assetUrl.replace((new URL(assetUrl)).origin, '');
+    return CACHE_URLS.some(function (url) { return assetPath === url; });
   }
 
   /**
@@ -54,7 +52,7 @@ self.addEventListener('fetch', function (event) {
    * @return {Promise}
    */
   function fetchRessourceFromCache(request) {
-    return this.match(request || event.request);
+    return this.match(request.url ? request : event.request);
   }
 
   /**
@@ -145,7 +143,7 @@ self.addEventListener('fetch', function (event) {
     event.respondWith(caches
       .open(CURRENT_CACHE)
       .then(handleRequest)
-      .catch(logError)
+      //.catch(logError)
     );
   }
   else {
