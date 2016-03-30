@@ -39,5 +39,12 @@ function pwa_serviceworker_file_data($version = 1) {
  * @return string
  */
 function pwa_offline_page() {
-  return '<h1>You are offline.</h1>';
+  return [
+    '#theme' => 'html_tag',
+    '#tag' => 'h1',
+    '#value' => 'You are offline.',
+    '#attributes' => [
+      'data-drupal-pwa-offline' => TRUE,
+    ],
+  ];
 }
