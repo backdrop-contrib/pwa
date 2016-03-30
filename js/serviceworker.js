@@ -83,6 +83,10 @@ function catchOfflineImage(error) {
   return caches.match(CACHE_OFFLINE_IMAGE);
 }
 
+function logError(error) {
+  console.log(error);
+}
+
 // Fetch strategy.
 
 /*fetchStrategy*/

@@ -49,6 +49,54 @@ self.addEventListener('fetch', function (event) {
   }
 
   /**
+   * @param {Request} request
+   *
+   * @return {Promise}
+   */
+  function fetchRessourceFromCache(request) {
+    return this.match(request || event.request);
+  }
+
+  /**
+   * Returns the cached version or reject the promise.
+   *
+   * @param {undefined|Response} response
+   *
+   * @return {Promise}
+   */
+  function returnRessourceFromCache(response) {
+    if (!response) {
+      return Promise.reject(new Error('Ressource not in cache'));
+    }
+    return response;
+  }
+
+  /**
+   *
+   * @return {Promise}
+   */
+  function fetchRessourceFromNetwork() {
+    return fetch(event.request);
+  }
+
+  /**
+   * @param {Response} response
+   *
+   * @return {Promise}
+   */
+  function cacheNetworkResponse(response) {
+    // Don't cache redirects or errors.
+    if (isCacheableResponse(response)) {
+      this.put(event.request, response.clone());
+    }
+    else {
+      console.log("Response not cacheable: ", response);
+    }
+    return response;
+  }
+
+
+  /**
    * Main point of entry.
    *
    * Separate handling of assets from all other requests.
@@ -59,12 +107,15 @@ self.addEventListener('fetch', function (event) {
    */
   function handleRequest(cache) {
     var promiseReturn;
+    var fetchRessourceFromThisCache = fetchRessourceFromCache.bind(cache);
 
     // If it's an asset: stale while revalidate.
     if (isCacheableAsset(url)) {
-      promiseReturn = cache
-        .match(event.request)
-        .then(handleCacheableAssetResponse.bind(cache));
+      promiseReturn = fetchRessourceFromThisCache(event.request)
+        .then(returnRessourceFromCache)
+        .catch(fetchRessourceFromNetwork)
+        .then(cacheNetworkResponse.bind(cache))
+        .catch(logError);
     }
     // Non-cacheable images: no cache.
     else if (isImageUrl.test(url)) {
@@ -74,71 +125,13 @@ self.addEventListener('fetch', function (event) {
     // Other ressources: network with cache fallback.
     else {
       promiseReturn = fetch(event.request)
-        .then(handleResponse.bind(cache))
-        .catch(handleOffline.bind(cache));
+        .then(cacheNetworkResponse.bind(cache))
+        .catch(fetchRessourceFromThisCache)
+        .then(returnRessourceFromCache)
+        .catch(catchOffline);
     }
 
     return promiseReturn;
-  }
-
-  /**
-   *
-   *
-   * @param {Response} response
-   */
-  function handleResponse(response) {
-    // Don't cache images.
-    if (isCacheableResponse(response)) {
-      this.put(event.request, response.clone());
-    }
-    return response;
-  }
-
-  /**
-   * Serve offline page.
-   *
-   * @param error
-   *
-   * @return {Promise}
-   */
-  function handleOffline(error) {
-    return this
-      .match(event.request)
-      .then(function (response) {
-        if (!response) {
-          throw new Error('Not in cache');
-        }
-        return response;
-      })
-      .catch(catchOffline);
-  }
-
-  /**
-   *
-   * @param {Response} response
-   *
-   * @return {Promise}
-   */
-  function handleCacheableAssetResponse(response) {
-
-    /**
-     * @param {Response} networkResponse
-     *
-     * @return {Promise}
-     */
-    function handleNetworkResponse(networkResponse) {
-      // Don't cache redirects or errors.
-      if (isCacheableResponse(networkResponse)) {
-        this.put(event.request, networkResponse.clone());
-      }
-      else {
-        console.log("Response not cacheable: ", networkResponse);
-      }
-      return networkResponse;
-    }
-
-    var fetchPromise = fetch(event.request).then(handleNetworkResponse.bind(this));
-    return response || fetchPromise;
   }
 
   var url = event.request.url;
@@ -152,6 +145,7 @@ self.addEventListener('fetch', function (event) {
     event.respondWith(caches
       .open(CURRENT_CACHE)
       .then(handleRequest)
+      .catch(logError)
     );
   }
   else {
