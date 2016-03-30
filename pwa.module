@@ -75,11 +75,6 @@ function pwa_manifest_file() {
         'type' => 'image/png',
       ],
       [
-        'src' => url($path . '/assets/druplicon-small.png'),
-        'sizes' => '175x200',
-        'type' => 'image/png',
-      ],
-      [
         'src' => url($path . '/assets/druplicon-vector.svg'),
         'type' => 'image/svg+xml',
       ],
@@ -97,12 +92,10 @@ function pwa_manifest_file() {
 function pwa_serviceworker_file() {
   $path = drupal_get_path('module', 'pwa');
   $sw = file_get_contents($path . '/js/serviceworker.js');
-  $fetch = pwa_get_fetch_info(variable_get('pwa_swcache_fetch_strategy', 'drupal'));
   $replace = [
     '[/*cacheConditionsExclude*/]' => drupal_json_encode((array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_exclude', '')))),
     '[/*cacheUrls*/]' => drupal_json_encode((array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_urls', '')))),
     '1/*cacheVersion*/' => variable_get('pwa_swcache_version', 1),
-    '/*fetchStrategy*/' => file_get_contents($fetch['file']),
     'offline-image.png' => '/' . drupal_get_path('module', 'pwa') . '/assets/offline-image.png',
   ];
   return str_replace(array_keys($replace), array_values($replace), $sw);
@@ -125,7 +118,7 @@ function pwa_preprocess_html(&$variables) {
     ],
   ];
   drupal_add_html_head($manifest_tag, 'manifest');
-
+  
   drupal_add_js(['pwa' => ['path' => '/pwa/' . variable_get('pwa_swcache_version', 1) . '/serviceworker.js']], 'setting');
   drupal_add_js($path . '/js/serviceworker-load.js', ['scope' => 'footer']);
 }
@@ -148,39 +141,4 @@ function pwa_flush_caches() {
   // callback so additional headers can be sent with the file.
   // @see pwa_deliver_js_file().
   cache_set('pwa:serviceworker', pwa_serviceworker_file(), 'cache');
-}
-
-function pwa_get_fetch_info($key = NULL) {
-  $strategies = &drupal_static(__FUNCTION__);
-  if (!isset($strategies)) {
-    $strategies = module_invoke_all('pwa_fetch_info');
-    drupal_alter('pwa_fetch_info', $strategies);
-  }
-
-  return array_key_exists($key, $strategies) ? $strategies[$key] : $strategies;
-}
-
-/**
- * Implements hook_pwa_fetch_info().
- */
-function pwa_pwa_fetch_info() {
-  $path = drupal_get_path('module', 'pwa');
-  return [
-    'drupal' => [
-      'label' => t('Drupal optimized strategy'),
-      'file' => $path . '/js/fetch.drupal.js',
-    ],
-    'networkCacheFallback' => [
-      'label' => t('Network, falling back to cache'),
-      'file' => $path . '/js/fetch.networkCacheFallback.js',
-    ],
-    'staleWhileRevalidate' => [
-      'label' => t('Stale while revalidate'),
-      'file' => $path . '/js/fetch.staleWhileRevalidate.js',
-    ],
-    'cacheNetworkFallback' => [
-      'label' => t('Cache, falling back to network'),
-      'file' => $path . '/js/fetch.cacheNetworkFallback.js',
-    ],
-  ];
 }

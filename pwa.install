@@ -3,6 +3,44 @@
  * @file
  */
 
+/**
+ * Implements hook_requirements().
+ */
+function pwa_requirements($phase) {
+  $requirements = [];
+
+  if ($phase !== 'runtime') {
+    return $requirements;
+  }
+
+  $t = get_t();
+  if ($_SERVER["REQUEST_SCHEME"] === 'https') {
+    $requirements['pwa'] = array(
+      'title' => $t('Progressive Web App'),
+      'value' => $t('HTTPS on'),
+      'severity' => REQUIREMENT_OK,
+      'description' => $t('Please make sure the certificate of %domain is valid for offline functionality to work.', ['%domain' => $_SERVER['HTTP_HOST']]),
+    );
+  }
+  elseif (in_array($_SERVER['HTTP_HOST'], ['localhost', '127.0.0.1'])) {
+    $requirements['pwa'] = array(
+      'title' => $t('Progressive Web App'),
+      'value' => 'localhost',
+      'severity' => REQUIREMENT_WARNING,
+      'description' => $t('You will need to configure HTTPS on your domain for this module to work.'),
+    );
+  }
+  else {
+    $requirements['pwa'] = array(
+      'title' => $t('Progressive Web App'),
+      'value' => $t('HTTPS off'),
+      'severity' => REQUIREMENT_ERROR,
+      'description' => $t('HTTPS need to be configured for the progressive web app module to work.'),
+    );
+  }
+
+  return $requirements;
+}
 
 /**
  * Implements hook_install().
@@ -14,6 +52,10 @@ function pwa_install() {
   variable_set('pwa_swcache_exclude', implode("\n", ['admin/.*']));
   variable_set('pwa_swcache_urls', implode("\n", ['/', '/offline']));
   pwa_flush_caches();
+
+  // By default give permissions to anon users.
+  user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, ['access pwa' => TRUE]);
+  user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, ['access pwa' => TRUE]);
 }
 
 /**

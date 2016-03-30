@@ -15,43 +15,47 @@ function pwa_admin_configuration() {
     '#title' => t('Manifest'),
     '#description' => t("Change values of the manifest file used to add the website as an app."),
   ];
-  $form['manifest']['pwa_name'] = [
-    '#type' => 'textfield',
-    '#title' => t('Title'),
-    '#desctiption' => t(" "),
-    '#default_value' => variable_get('pwa_name', variable_get('site_name')),
-    '#required' => TRUE,
-  ];
   $form['manifest']['pwa_short_name'] = [
     '#type' => 'textfield',
     '#title' => t('Short name'),
-    '#desctiption' => t(" "),
+    '#description' => t("Name of the shortcut created on the device."),
     '#default_value' => variable_get('pwa_short_name', variable_get('site_name')),
+    '#required' => TRUE,
+  ];
+  $form['manifest']['pwa_name'] = [
+    '#type' => 'textfield',
+    '#title' => t('Name'),
+    '#description' => t("Usually the named displayed on the splash screen on launch."),
+    '#default_value' => variable_get('pwa_name', variable_get('site_name')),
+    '#required' => TRUE,
   ];
   $form['manifest']['pwa_background_color'] = [
     '#type' => 'textfield',
     '#title' => t('Background color'),
-    '#desctiption' => t(" "),
+    '#description' => t("Color of the browser bar when launching from shortcut."),
     '#size' => 4,
     '#default_value' => variable_get('pwa_background_color', '#ffffff'),
   ];
   $form['manifest']['pwa_theme_color'] = [
     '#type' => 'textfield',
     '#title' => t('Theme color'),
-    '#desctiption' => t(" "),
+    '#description' => t("Color of the background spalsh screen when launching from shortcut."),
     '#size' => 4,
     '#default_value' => variable_get('pwa_theme_color', '#ffffff'),
   ];
+  if (module_exists('color')) {
+    $form['manifest']['pwa_background_color']['#value_callback'] = 'color_palette_color_value';
+    $form['manifest']['pwa_theme_color']['#value_callback'] = 'color_palette_color_value';
+  }
   $form['manifest']['pwa_start_url'] = [
     '#type' => 'textfield',
-    '#title' => t('start_url'),
-    '#desctiption' => t(" "),
-    '#default_value' => variable_get('pwa_start_url', '/'),
+    '#title' => t('Start URL'),
+    '#description' => t("Home page when launched from shortcut, can append a query string to gather stats. For example <code>/home?startfrom=manifest</code>."),
+    '#default_value' => variable_get('pwa_start_url', variable_get('site_frontpage', '/')),
   ];
   $form['manifest']['pwa_orientation'] = [
     '#type' => 'select',
-    '#title' => t('orientation'),
-    '#desctiption' => t(" "),
+    '#title' => t('Orientation'),
     '#options' => [
       'portrait' => t('Portrait'),
       'landscape' => t('Landscape'),
@@ -59,9 +63,14 @@ function pwa_admin_configuration() {
     '#default_value' => variable_get('pwa_orientation', 'portrait'),
   ];
   $form['manifest']['pwa_display'] = [
-    '#type' => 'textfield',
+    '#type' => 'select',
     '#title' => t('Display'),
-    '#desctiption' => t(" "),
+    '#options' => [
+      'fullscreen' => 'Fullscreen',
+      'standalone' => 'Standalone (as an app)',
+      'minimal-ui' => 'Minimal UI',
+      'browser' => 'Browser',
+    ],
     '#default_value' => variable_get('pwa_display', 'standalone'),
   ];
   /*
@@ -80,16 +89,13 @@ function pwa_admin_configuration() {
   $form['sw']['pwa_swcache_exclude'] = [
     '#type' => 'textarea',
     '#title' => t('Exclude URLs patterns'),
-    '#description' => t("One javascript regex per line."),
-    '#default_value' => variable_get('pwa_swcache_exclude', implode("\n", [
-      '/serviceworker.js$',
-      'admin/.*',
-    ])),
+    '#description' => t("Paths matching those patterns will not be cached by the serviceworker. One javascript regex per line."),
+    '#default_value' => variable_get('pwa_swcache_exclude', implode("\n", ['admin/.*'])),
   ];
   $form['sw']['pwa_swcache_urls'] = [
     '#type' => 'textarea',
     '#title' => t('Urls to cache on install'),
-    '#description' => t("Cache those URLs when the service worker is installed."),
+    '#description' => t("When the serviceworker is installed cache those URLs."),
     '#default_value' => variable_get('pwa_swcache_urls', implode("\n", [
       '/',
       '/offline',
@@ -99,22 +105,9 @@ function pwa_admin_configuration() {
   $form['sw']['pwa_swcache_version'] = [
     '#type' => 'textfield',
     '#title' => t('Cache version'),
-    '#desctiption' => t("Changing this number will invalidate all ServiceWorker cache. Use when changing cache strategy."),
+    '#description' => t("Changing this number will invalidate all serviceworker caches. Use it when assets have significantly changed or if you want to force a cache refresh for all clients."),
     '#size' => 1,
     '#default_value' => variable_get('pwa_swcache_version', 1),
-  ];
-  // @todo use plugins, and plugins config forms.
-  $strategies = pwa_get_fetch_info();
-  $options = [];
-  foreach ($strategies as $name => $infos) {
-    $options[$name] = $infos['label'];
-  }
-  $form['sw']['pwa_swcache_fetch_strategy'] = [
-    '#type' => 'select',
-    '#title' => t('Cache strategy'),
-    '#options' => $options,
-    '#description' => t("As seen in !url.", ['!url' => l('The offline cookbook', 'https://jakearchibald.com/2014/offline-cookbook/')]),
-    '#default_value' => variable_get('pwa_swcache_fetch_strategy', 'drupal'),
   ];
 
   $form = system_settings_form($form);
