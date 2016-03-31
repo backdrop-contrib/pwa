@@ -13,6 +13,7 @@
 var CACHE_VERSION = 1/*cacheVersion*/;
 var CACHE_EXCLUDE = [/*cacheConditionsExclude*/].map(function (r) {return new RegExp(r);});
 var CACHE_URLS = [/*cacheUrls*/];
+var CACHE_URLS_ASSETS = [/*cacheUrlsAssets*/];
 var CACHE_OFFLINE_IMAGE = 'offline-image.png';
 // @todo add all images from the manifest.
 CACHE_URLS.push(CACHE_OFFLINE_IMAGE);
@@ -27,7 +28,7 @@ self.addEventListener('install', function (event) {
     tasks.push(caches
       .open(CURRENT_CACHE)
       .then(function (cache) {
-        return cache.addAll(CACHE_URLS);
+        return cache.addAll(CACHE_URLS.concat(CACHE_URLS_ASSETS));
       }));
   }
   event.waitUntil(Promise.all(tasks));
@@ -117,7 +118,7 @@ function isCacheableAsset(assetUrl) {
   // If it looks like an image, only cache images that are part of
   // assets cached on install.
   var assetPath = assetUrl.href.replace(assetUrl.origin, '');
-  return CACHE_URLS.some(function (url) { return assetPath === url; });
+  return CACHE_URLS.concat(CACHE_URLS_ASSETS).some(function (url) { return assetPath === url; });
 }
 
 /**
@@ -128,7 +129,7 @@ function isCacheableAsset(assetUrl) {
  * @return {boolean}
  */
 function isAssetUrl(assetUrl) {
-  return /\.(js|css|jpe?g|png|gif|svg|webp)\??/.test(assetUrl.href);
+  return /\.(js|css|jpe?g|png|gif|svg|webp|eot|woff2?|ttf|otf)\??/.test(assetUrl.href);
 }
 
 /**

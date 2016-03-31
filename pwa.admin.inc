@@ -95,12 +95,8 @@ function pwa_admin_configuration() {
   $form['sw']['pwa_swcache_urls'] = [
     '#type' => 'textarea',
     '#title' => t('Urls to cache on install'),
-    '#description' => t("When the serviceworker is installed cache those URLs."),
-    '#default_value' => variable_get('pwa_swcache_urls', implode("\n", [
-      '/',
-      '/offline',
-      '/' . drupal_get_path('module', 'pwa') . '/assets/offline-image.png',
-    ])),
+    '#description' => t("When the serviceworker is installed cache those URLs. If an URL is a page: all it's css, js, and images will be cached automatically."),
+    '#default_value' => variable_get('pwa_swcache_urls', implode("\n", ['/', '/offline'])),
   ];
   $form['sw']['pwa_swcache_version'] = [
     '#type' => 'textfield',

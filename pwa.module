@@ -114,9 +114,11 @@ function pwa_manifest_file() {
 function pwa_serviceworker_file() {
   $path = drupal_get_path('module', 'pwa');
   $sw = file_get_contents($path . '/js/serviceworker.js');
+  $cacheUrls = (array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_urls', '')));
   $replace = [
     '[/*cacheConditionsExclude*/]' => drupal_json_encode((array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_exclude', '')))),
-    '[/*cacheUrls*/]' => drupal_json_encode(_pwa_fetch_offline_page_ressources((array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_urls', ''))))),
+    '[/*cacheUrls*/]' => drupal_json_encode($cacheUrls),
+    '[/*cacheUrlsAssets*/]' => drupal_json_encode(_pwa_fetch_offline_page_ressources($cacheUrls)),
     '1/*cacheVersion*/' => variable_get('pwa_swcache_version', 1),
     'offline-image.png' => '/' . drupal_get_path('module', 'pwa') . '/assets/offline-image.png',
   ];
@@ -172,11 +174,9 @@ function pwa_flush_caches() {
  */
 function _pwa_fetch_offline_page_ressources($pages) {
   global $base_url;
-
   $ressources = [];
 
   foreach ($pages as $page) {
-    $ressources[] = $page;
     $response = drupal_http_request(url($page, ['absolute' => TRUE]));
     if (explode('/', $response->headers['content-type'], 2)[0] === 'image') {
       break;
@@ -192,6 +192,9 @@ function _pwa_fetch_offline_page_ressources($pages) {
     }
     foreach ($xpath->query('//link[@rel="stylesheet"]') as $stylesheet) {
       $ressources[] = $stylesheet->getAttribute('href');
+    }
+    foreach ($xpath->query('//img[@src]') as $stylesheet) {
+      $ressources[] = $stylesheet->getAttribute('src');
     }
   }
 
