@@ -2,3 +2,4 @@ name = Progressive Web App
 description = Make the website installable on mobile.
 core = 7.x
 
+configure = admin/config/system/pwa

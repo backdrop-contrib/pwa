@@ -192,6 +192,8 @@ self.addEventListener('fetch', function (event) {
   function cacheNetworkResponse(response) {
     // Don't cache redirects or errors.
     if (response.ok) {
+      // Copy now and not in the then() because by that time it's too late,
+      // the request has already been used and can't be touched again.
       var copy = response.clone();
       caches
         .open(CURRENT_CACHE)
@@ -205,6 +207,12 @@ self.addEventListener('fetch', function (event) {
     }
     return response;
   }
+
+  var url = new URL(event.request.url);
+  var isMethodGet = event.request.method === 'GET';
+  var notExcludedPath = CACHE_EXCLUDE.every(urlNotExcluded(url.href));
+  var includedProtocol = ['http:', 'https:'].indexOf(url.protocol) !== -1;
+  // @todo cache views ajax request by igoring methods when putting in cache.
 
   var makeRequest = {
     networkWithOfflineImageFallback: function (request) {
@@ -227,12 +235,6 @@ self.addEventListener('fetch', function (event) {
         .catch(catchOffline);
     }
   };
-
-  var url = new URL(event.request.url);
-  var isMethodGet = event.request.method === 'GET';
-  var notExcludedPath = CACHE_EXCLUDE.every(urlNotExcluded(url.href));
-  var includedProtocol = ['http:', 'https:'].indexOf(url.protocol) !== -1;
-  // @todo cache views ajax request by igoring methods when putting in cache.
 
   // Make sure the url is one we don't exclude from cache.
   if (isMethodGet && includedProtocol && notExcludedPath) {
