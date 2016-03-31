@@ -111,7 +111,7 @@ function isCacheableResponse(response) {
 /**
  * Test if an asset should be cached.
  *
- * @param {string} assetUrl
+ * @param {URL} assetUrl
  *
  * @return {boolean}
  */
@@ -127,30 +127,30 @@ function isCacheableAsset(assetUrl) {
   }
   // If it looks like an image, only cache images that are part of
   // assets cached on install.
-  var assetPath = assetUrl.replace((new URL(assetUrl)).origin, '');
+  var assetPath = assetUrl.href.replace(assetUrl.origin, '');
   return CACHE_URLS.some(function (url) { return assetPath === url; });
 }
 
 /**
  * Helper for Assets files.
  *
- * @param {string} assetUrl
+ * @param {URL} assetUrl
  *
  * @return {boolean}
  */
 function isAssetUrl(assetUrl) {
-  return /\.(js|css|jpe?g|png|gif|svg|webp)\??/.test(assetUrl);
+  return /\.(js|css|jpe?g|png|gif|svg|webp)\??/.test(assetUrl.href);
 }
 
 /**
  * Helper for image files.
  *
- * @param {string} imageUrl
+ * @param {URL} imageUrl
  *
  * @return {boolean}
  */
 function isImageUrl(imageUrl) {
-  return /\.(jpe?g|png|gif|svg|webp)\??/.test(imageUrl);
+  return /\.(jpe?g|png|gif|svg|webp)\??/.test(imageUrl.href);
 }
 
 
@@ -211,53 +211,53 @@ self.addEventListener('fetch', function (event) {
   }
 
 
-  /**
-   * Main point of entry.
-   *
-   * Separate handling of assets from all other requests.
-   *
-   * @param {Cache} cache
-   *
-   * @return {Promise}
-   */
-  function handleRequest(cache) {
-    var promiseReturn;
-    var fetchRessourceFromThisCache = fetchRessourceFromCache.bind(cache);
-
-    // If it's an asset: stale while revalidate.
-    if (isCacheableAsset(url)) {
-      promiseReturn = fetchRessourceFromThisCache(event.request)
+  var requestStrategy = {
+    networkWithOfflineImageFallback: function (request) {
+      return fetch(request)
+        .catch(catchOfflineImage);
+    },
+    staleWhileRevalidate: function (request, cache) {
+      return fetchRessourceFromCache.bind(cache)(event.request)
         .then(returnRessourceFromCache)
         .catch(fetchRessourceFromNetwork)
         .then(cacheNetworkResponse.bind(cache))
         .catch(logError);
-    }
-    // Non-cacheable images: no cache.
-    else if (isImageUrl(url)) {
-      promiseReturn = fetch(event.request)
-        .catch(catchOfflineImage);
-    }
-    // Other ressources: network with cache fallback.
-    else {
-      promiseReturn = fetch(event.request)
+    },
+    networkWithCacheFallback: function (request, cache) {
+      return fetch(request)
         .then(cacheNetworkResponse.bind(cache))
-        .catch(fetchRessourceFromThisCache)
+        .catch(fetchRessourceFromCache.bind(cache))
         .then(returnRessourceFromCache)
         .catch(catchOffline);
     }
+  };
 
-    return promiseReturn;
-  }
-
-  var url = event.request.url;
+  var url = new URL(event.request.url);
   var isMethodGet = event.request.method === 'GET';
-  var notExcluded = CACHE_EXCLUDE.every(urlNotExcluded(url));
+  var notExcludedPath = CACHE_EXCLUDE.every(urlNotExcluded(url.href));
+  var includedProtocol = ['http:', 'https:'].indexOf(url.protocol) !== -1;
+  // @todo cache views ajax request by igoring methods when putting in cache.
 
   // Make sure the url is one we don't exclude from cache.
-  if (isMethodGet && notExcluded) {
+  if (isMethodGet && includedProtocol && notExcludedPath) {
     event.respondWith(caches
       .open(CURRENT_CACHE)
-      .then(handleRequest)
+      // Main point of entry.
+      // Separate handling of assets from all other requests.
+      .then(function (cache) {
+        // If it's an asset: stale while revalidate.
+        if (isCacheableAsset(url)) {
+          return requestStrategy.staleWhileRevalidate(event.request, cache);
+        }
+        // Non-cacheable images: no cache.
+        else if (isImageUrl(url)) {
+          return requestStrategy.networkWithOfflineImageFallback(event.request);
+        }
+        // Other ressources: network with cache fallback.
+        else {
+          return requestStrategy.networkWithCacheFallback(event.request, cache);
+        }
+      })
       .catch(logError)
     );
   }
