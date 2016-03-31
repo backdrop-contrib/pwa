@@ -94,18 +94,7 @@ function catchOfflineImage(error) {
  */
 function logError(error) {
   console.log(error);
-}
-
-/**
- * Helper to make sure we don't cache http errors.
- *
- * @param {Response} response
- *
- * @return {boolean}
- */
-function isCacheableResponse(response) {
-  // Don't cache HTTP errors or redirects.
-  return response.status < 300;
+  return Response.error();
 }
 
 /**
@@ -201,7 +190,7 @@ self.addEventListener('fetch', function (event) {
    */
   function cacheNetworkResponse(response) {
     // Don't cache redirects or errors.
-    if (isCacheableResponse(response)) {
+    if (response.ok) {
       this.put(event.request, response.clone());
     }
     else {
@@ -210,11 +199,11 @@ self.addEventListener('fetch', function (event) {
     return response;
   }
 
-
   var requestStrategy = {
     networkWithOfflineImageFallback: function (request) {
       return fetch(request)
-        .catch(catchOfflineImage);
+        .catch(catchOfflineImage)
+        .catch(logError);
     },
     staleWhileRevalidate: function (request, cache) {
       return fetchRessourceFromCache.bind(cache)(event.request)
@@ -258,7 +247,6 @@ self.addEventListener('fetch', function (event) {
           return requestStrategy.networkWithCacheFallback(event.request, cache);
         }
       })
-      .catch(logError)
     );
   }
   else {
