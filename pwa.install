@@ -54,8 +54,8 @@ function pwa_install() {
   pwa_flush_caches();
 
   // By default give permissions to anon users.
-  user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, ['access pwa' => TRUE]);
-  user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, ['access pwa' => TRUE]);
+  //user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, ['access pwa' => TRUE]);
+  //user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, ['access pwa' => TRUE]);
 }
 
 /**
