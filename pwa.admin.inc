@@ -51,7 +51,7 @@ function pwa_admin_configuration() {
     '#type' => 'textfield',
     '#title' => t('Start URL'),
     '#description' => t("Home page when launched from shortcut, can append a query string to gather stats. For example <code>/home?startfrom=manifest</code>."),
-    '#default_value' => variable_get('pwa_start_url', variable_get('site_frontpage', '/')),
+    '#default_value' => variable_get('pwa_start_url', '/' . variable_get('site_frontpage', '')),
   ];
   $form['manifest']['pwa_orientation'] = [
     '#type' => 'select',
@@ -96,7 +96,7 @@ function pwa_admin_configuration() {
     '#type' => 'textarea',
     '#title' => t('Urls to cache on install'),
     '#description' => t("When the serviceworker is installed cache those URLs. If an URL is a page: all it's css, js, and images will be cached automatically."),
-    '#default_value' => variable_get('pwa_swcache_urls', implode("\n", ['/offline', variable_get('pwa_start_url', variable_get('site_frontpage', '/'))])),
+    '#default_value' => variable_get('pwa_swcache_urls', implode("\n", ['/', '/offline', variable_get('pwa_start_url', '')])),
   ];
   $form['sw']['pwa_swcache_version'] = [
     '#type' => 'textfield',
