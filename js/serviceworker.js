@@ -158,7 +158,7 @@ self.addEventListener('fetch', function (event) {
    * @return {Promise}
    */
   function fetchRessourceFromCache(request) {
-    return this.match(request.url ? request : event.request);
+    return caches.match(request.url ? request : event.request);
   }
 
   /**
@@ -191,7 +191,12 @@ self.addEventListener('fetch', function (event) {
   function cacheNetworkResponse(response) {
     // Don't cache redirects or errors.
     if (response.ok) {
-      this.put(event.request, response.clone());
+      caches
+        .open(CURRENT_CACHE)
+        .then(function (cache) {
+          return cache.put(event.request, response.clone());
+        })
+        .catch(logError);
     }
     else {
       console.log("Response not cacheable: ", response);
@@ -199,23 +204,23 @@ self.addEventListener('fetch', function (event) {
     return response;
   }
 
-  var requestStrategy = {
+  var makeRequest = {
     networkWithOfflineImageFallback: function (request) {
       return fetch(request)
         .catch(catchOfflineImage)
         .catch(logError);
     },
-    staleWhileRevalidate: function (request, cache) {
-      return fetchRessourceFromCache.bind(cache)(event.request)
+    staleWhileRevalidate: function (request) {
+      return fetchRessourceFromCache(request)
         .then(returnRessourceFromCache)
         .catch(fetchRessourceFromNetwork)
-        .then(cacheNetworkResponse.bind(cache))
+        .then(cacheNetworkResponse)
         .catch(logError);
     },
-    networkWithCacheFallback: function (request, cache) {
+    networkWithCacheFallback: function (request) {
       return fetch(request)
-        .then(cacheNetworkResponse.bind(cache))
-        .catch(fetchRessourceFromCache.bind(cache))
+        .then(cacheNetworkResponse)
+        .catch(fetchRessourceFromCache)
         .then(returnRessourceFromCache)
         .catch(catchOffline);
     }
@@ -229,25 +234,18 @@ self.addEventListener('fetch', function (event) {
 
   // Make sure the url is one we don't exclude from cache.
   if (isMethodGet && includedProtocol && notExcludedPath) {
-    event.respondWith(caches
-      .open(CURRENT_CACHE)
-      // Main point of entry.
-      // Separate handling of assets from all other requests.
-      .then(function (cache) {
-        // If it's an asset: stale while revalidate.
-        if (isCacheableAsset(url)) {
-          return requestStrategy.staleWhileRevalidate(event.request, cache);
-        }
-        // Non-cacheable images: no cache.
-        else if (isImageUrl(url)) {
-          return requestStrategy.networkWithOfflineImageFallback(event.request);
-        }
-        // Other ressources: network with cache fallback.
-        else {
-          return requestStrategy.networkWithCacheFallback(event.request, cache);
-        }
-      })
-    );
+    // If it's an asset: stale while revalidate.
+    if (isCacheableAsset(url)) {
+      event.respondWith(makeRequest.staleWhileRevalidate(event.request));
+    }
+    // Don't cache images.
+    else if (isImageUrl(url)) {
+      event.respondWith(makeRequest.networkWithOfflineImageFallback(event.request));
+    }
+    // Other ressources: network with cache fallback.
+    else {
+      event.respondWith(makeRequest.networkWithCacheFallback(event.request));
+    }
   }
   else {
     console.log('Excluded URL: ', event.request.url);
