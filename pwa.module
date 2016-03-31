@@ -35,7 +35,7 @@ function pwa_menu() {
 
   $items['offline'] = [
     'page callback' => 'pwa_offline_page',
-    'access arguments' => ['access content'],
+    'access arguments' => ['access pwa'],
     'file' => 'pwa.pages.inc',
     'type' => MENU_CALLBACK,
   ];
@@ -50,6 +50,28 @@ function pwa_menu() {
   ];
 
   return $items;
+}
+
+/**
+ * Implements hook_library().
+ */
+function pwa_library() {
+  $path = drupal_get_path('module', 'pwa');
+  return [
+    'serviceworker' => [
+      'version' => '0.1',
+      'js' => [
+        $path . '/js/serviceworker-load.js' => ['scope' => 'footer'],
+        0 => [
+          'data' => ['pwa' => ['path' => '/pwa/%/serviceworker.js']],
+          'type' => 'setting',
+        ],
+      ],
+      'dependencies' => [
+        // Drupal.settings.
+      ]
+    ]
+  ];
 }
 
 /**
@@ -94,7 +116,7 @@ function pwa_serviceworker_file() {
   $sw = file_get_contents($path . '/js/serviceworker.js');
   $replace = [
     '[/*cacheConditionsExclude*/]' => drupal_json_encode((array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_exclude', '')))),
-    '[/*cacheUrls*/]' => drupal_json_encode((array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_urls', '')))),
+    '[/*cacheUrls*/]' => drupal_json_encode(_pwa_fetch_offline_page_ressources((array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_urls', ''))))),
     '1/*cacheVersion*/' => variable_get('pwa_swcache_version', 1),
     'offline-image.png' => '/' . drupal_get_path('module', 'pwa') . '/assets/offline-image.png',
   ];
@@ -109,18 +131,16 @@ function pwa_preprocess_html(&$variables) {
     return;
   }
 
-  $path = drupal_get_path('module', 'pwa');
-  $manifest_tag = [
+  drupal_add_html_head([
     '#tag' => 'link',
     '#attributes' => [
       'rel' => 'manifest',
       'href' => variable_get('pwa_filecache_manifest', ''),
     ],
-  ];
-  drupal_add_html_head($manifest_tag, 'manifest');
-  
+  ], 'manifest');
+
+  drupal_add_library('pwa', 'serviceworker');
   drupal_add_js(['pwa' => ['path' => '/pwa/' . variable_get('pwa_swcache_version', 1) . '/serviceworker.js']], 'setting');
-  drupal_add_js($path . '/js/serviceworker-load.js', ['scope' => 'footer']);
 }
 
 /**
@@ -141,4 +161,43 @@ function pwa_flush_caches() {
   // callback so additional headers can be sent with the file.
   // @see pwa_deliver_js_file().
   cache_set('pwa:serviceworker', pwa_serviceworker_file(), 'cache');
+}
+
+/**
+ * List all JS and CSS assets present in $pages so they can be cached.
+ *
+ * @param $pages
+ *
+ * @return array
+ */
+function _pwa_fetch_offline_page_ressources($pages) {
+  global $base_url;
+
+  $ressources = [];
+
+  foreach ($pages as $page) {
+    $ressources[] = $page;
+    $response = drupal_http_request(url($page, ['absolute' => TRUE]));
+    if (explode('/', $response->headers['content-type'], 2)[0] === 'image') {
+      break;
+    }
+    $dom = new DOMDocument();
+    // Ignore warnings during HTML soup loading.
+    @$dom->loadHTML($response->data);
+    $xpath = new DOMXPath($dom);
+
+    $ressources = [];
+    foreach ($xpath->query('//script[@src]') as $script) {
+      $ressources[] = $script->getAttribute('src');
+    }
+    foreach ($xpath->query('//link[@rel="stylesheet"]') as $stylesheet) {
+      $ressources[] = $stylesheet->getAttribute('href');
+    }
+  }
+
+  $dedup = array_unique($ressources);
+  foreach ($dedup as &$ressource) {
+    $ressource = str_replace($base_url, '', $ressource);
+  }
+  return $dedup;
 }

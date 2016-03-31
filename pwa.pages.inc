@@ -7,7 +7,7 @@
  * Deliver the JS for the service worker.
  *
  * Adds a Service-Worker-Allowed header so that a file served from
- * /pwa/X/serviceworker.js can have a scope of '/'.
+ * '/pwa/X/serviceworker.js' can have a scope of '/'.
  */
 function pwa_deliver_js_file($page_callback_result) {
   drupal_add_http_header('Content-Type', 'application/javascript');
@@ -16,7 +16,7 @@ function pwa_deliver_js_file($page_callback_result) {
 }
 
 /**
- * Returns the data for the service worker.
+ * Returns the JS of the service worker.
  *
  * @return mixed
  */
@@ -35,6 +35,8 @@ function pwa_serviceworker_file_data($version = 1) {
 
 /**
  * Default page when for when the user has no connection.
+ *
+ * @todo template like maintenance page?
  *
  * @return string
  */

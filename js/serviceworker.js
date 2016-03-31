@@ -191,10 +191,11 @@ self.addEventListener('fetch', function (event) {
   function cacheNetworkResponse(response) {
     // Don't cache redirects or errors.
     if (response.ok) {
+      var copy = response.clone();
       caches
         .open(CURRENT_CACHE)
         .then(function (cache) {
-          return cache.put(event.request, response.clone());
+          return cache.put(event.request, copy);
         })
         .catch(logError);
     }
