@@ -14,7 +14,7 @@ function pwa_requirements($phase) {
   }
 
   $t = get_t();
-  if ($_SERVER["REQUEST_SCHEME"] === 'https') {
+  if ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || (isset($_SERVER["REQUEST_SCHEME"]) && $_SERVER["REQUEST_SCHEME"] === 'https')) {
     $requirements['pwa'] = array(
       'title' => $t('Progressive Web App'),
       'value' => $t('HTTPS on'),
