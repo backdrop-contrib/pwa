@@ -63,7 +63,7 @@ function pwa_library() {
       'js' => [
         $path . '/js/serviceworker-load.js' => ['scope' => 'footer'],
         0 => [
-          'data' => ['pwa' => ['path' => '/pwa/%/serviceworker.js']],
+          'data' => ['pwa' => ['path' => url('/pwa/%/serviceworker.js')]],
           'type' => 'setting',
         ],
       ],
@@ -115,12 +115,16 @@ function pwa_serviceworker_file() {
   $path = drupal_get_path('module', 'pwa');
   $sw = file_get_contents($path . '/js/serviceworker.js');
   $cacheUrls = (array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_urls', '')));
+  foreach ($cacheUrls as &$url) {
+    $url = url($url);
+  }
   $replace = [
     '[/*cacheConditionsExclude*/]' => drupal_json_encode((array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_exclude', '')))),
     '[/*cacheUrls*/]' => drupal_json_encode($cacheUrls),
     '[/*cacheUrlsAssets*/]' => drupal_json_encode(_pwa_fetch_offline_page_ressources($cacheUrls)),
     '1/*cacheVersion*/' => variable_get('pwa_swcache_version', 1),
-    'offline-image.png' => base_path() . drupal_get_path('module', 'pwa') . '/assets/offline-image.png',
+    '/offline' => url('/offline'),
+    'offline-image.png' => file_create_url(drupal_get_path('module', 'pwa') . '/assets/offline-image.png'),
   ];
   return str_replace(array_keys($replace), array_values($replace), $sw);
 }
@@ -142,7 +146,7 @@ function pwa_preprocess_html(&$variables) {
   ], 'manifest');
 
   drupal_add_library('pwa', 'serviceworker');
-  drupal_add_js(['pwa' => ['path' => base_path() . 'pwa/' . variable_get('pwa_swcache_version', 1) . '/serviceworker.js']], 'setting');
+  drupal_add_js(['pwa' => ['path' => url('pwa/' . variable_get('pwa_swcache_version', 1) . '/serviceworker.js')]], 'setting');
 }
 
 /**
@@ -173,7 +177,6 @@ function pwa_flush_caches() {
  * @return array
  */
 function _pwa_fetch_offline_page_ressources($pages) {
-  global $base_url;
   $ressources = [];
 
   foreach ($pages as $page) {
@@ -199,8 +202,5 @@ function _pwa_fetch_offline_page_ressources($pages) {
   }
 
   $dedup = array_unique($ressources);
-  foreach ($dedup as &$ressource) {
-    $ressource = str_replace($base_url, base_path(), $ressource);
-  }
   return $dedup;
 }
