@@ -31,7 +31,12 @@ self.addEventListener('install', function (event) {
       .then(function (cache) {
         return Promise.all(CACHE_URLS.concat(CACHE_URLS_ASSETS).map(function (url) {
           return fetch(url, {mode: 'no-cors'})
-            .then(function (response) { return cache.put(url, response); })
+            .then(function (response) {
+              if (response.ok) {
+                return cache.put(url, response);
+              }
+              return Promise.resolve();
+            })
             // Don't fail, make sure SW is installed.
             .catch(function (error) { logError(error); return Promise.resolve(); });
         }));
