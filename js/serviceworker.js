@@ -29,7 +29,13 @@ self.addEventListener('install', function (event) {
     event.waitUntil(caches
       .open(CURRENT_CACHE)
       .then(function (cache) {
-        return cache.addAll(CACHE_URLS.concat(CACHE_URLS_ASSETS));
+        return Promise.all(CACHE_URLS.concat(CACHE_URLS_ASSETS).map(function (url) {
+          return fetch(url, {mode: 'no-cors'})
+            .then(function (response) { return cache.put(url, response); })
+            // Don't fail, make sure SW is installed.
+            .catch(function (error) { logError(error); return Promise.resolve(); });
+        }));
+        //return cache.addAll(CACHE_URLS.concat(CACHE_URLS_ASSETS));
       }));
   }
 });
