@@ -25,15 +25,13 @@ var CURRENT_CACHE = 'all-cache-v' + CACHE_VERSION;
 // Perform install steps
 self.addEventListener('install', function (event) {
   // Use the service woker ASAP.
-  var tasks = [self.skipWaiting()];
   if (CACHE_URLS.length) {
-    tasks.push(caches
+    event.waitUntil(caches
       .open(CURRENT_CACHE)
       .then(function (cache) {
         return cache.addAll(CACHE_URLS.concat(CACHE_URLS_ASSETS));
       }));
   }
-  event.waitUntil(Promise.all(tasks));
 });
 
 self.addEventListener('activate', function(event) {
