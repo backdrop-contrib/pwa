@@ -81,6 +81,7 @@ function pwa_library() {
  */
 function pwa_manifest_file() {
   $path = drupal_get_path('module', 'pwa');
+
   $manifest = [
     'name' => variable_get('pwa_name', variable_get('site_name')),
     'short_name' => variable_get('pwa_short_name', variable_get('site_name')),
@@ -89,7 +90,8 @@ function pwa_manifest_file() {
     'start_url' => variable_get('pwa_start_url', '/'),
     'orientation' => variable_get('pwa_orientation', 'portrait'),
     'display' => variable_get('pwa_display', 'standalone'),
-    // @todo make configurable.
+
+    // @TODO: make configurable.
     'icons' => [
       [
         'src' => url($path . '/assets/druplicon-144.png'),
@@ -102,7 +104,9 @@ function pwa_manifest_file() {
       ],
     ],
   ];
+
   drupal_alter('pwa_manifest', $manifest);
+
   return drupal_json_encode($manifest);
 }
 
@@ -115,13 +119,15 @@ function pwa_serviceworker_file() {
   $path = drupal_get_path('module', 'pwa');
   $sw = file_get_contents($path . '/js/serviceworker.js');
   $cacheUrls = (array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_urls', '')));
+
   foreach ($cacheUrls as &$url) {
     $url = url($url);
   }
+
   $replace = [
     '[/*cacheConditionsExclude*/]' => drupal_json_encode((array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_exclude', '')))),
     '[/*cacheUrls*/]' => drupal_json_encode($cacheUrls),
-    '[/*cacheUrlsAssets*/]' => drupal_json_encode(_pwa_fetch_offline_page_ressources($cacheUrls)),
+    '[/*cacheUrlsAssets*/]' => drupal_json_encode(_pwa_fetch_offline_page_resources($cacheUrls)),
     '1/*cacheVersion*/' => variable_get('pwa_swcache_version', 1),
     '/offline' => url('/offline'),
     'offline-image.png' => file_create_url(drupal_get_path('module', 'pwa') . '/assets/offline-image.png'),
@@ -176,7 +182,7 @@ function pwa_flush_caches() {
  *
  * @return array
  */
-function _pwa_fetch_offline_page_ressources($pages) {
+function _pwa_fetch_offline_page_resources($pages) {
   $ressources = [];
 
   foreach ($pages as $page) {

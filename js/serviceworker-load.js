@@ -23,13 +23,11 @@
   });
 
   /*
-  In case you want to unregister the SW during testing:
-
+  // In case you want to unregister the SW during testing:
   navigator.serviceWorker.getRegistration()
     .then(function(registration) {
       registration.unregister();
     });
-
-   */
+  /**/
 
 }(Drupal.settings, navigator, window));
