@@ -27,7 +27,7 @@ function pwa_requirements($phase) {
       'title' => $t('Progressive Web App'),
       'value' => 'localhost',
       'severity' => REQUIREMENT_WARNING,
-      'description' => $t('You will need to configure HTTPS on your domain for this module to work.'),
+      'description' => $t('You will need to configure HTTPS on your production site for the Progressive Web App to function.'),
     );
   }
   else {
@@ -35,7 +35,7 @@ function pwa_requirements($phase) {
       'title' => $t('Progressive Web App'),
       'value' => $t('HTTPS off'),
       'severity' => REQUIREMENT_ERROR,
-      'description' => $t('HTTPS need to be configured for the progressive web app module to work.'),
+      'description' => $t('HTTPS needs to be configured to enable your Progressive Web App. Without a secure connection, the Service Worker will not install itself.'),
     );
   }
 
@@ -54,8 +54,12 @@ function pwa_install() {
   pwa_flush_caches();
 
   // By default give permissions to anon users.
-  //user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, ['access pwa' => TRUE]);
-  //user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, ['access pwa' => TRUE]);
+  //
+  // @TODO: set a status message prompting admins to enable functionality for
+  //        roles themselves.
+  //
+  // user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, ['access pwa' => TRUE]);
+  // user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, ['access pwa' => TRUE]);
 }
 
 /**
