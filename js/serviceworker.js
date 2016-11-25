@@ -45,7 +45,7 @@ self.addEventListener('install', function (event) {
       .open(CURRENT_CACHE)
       .then(function (cache) {
         return Promise.all(CACHE_URLS.concat(CACHE_URLS_ASSETS).map(function (url) {
-          return fetch(url, {credentials: 'same-origin', mode: 'no-cors'})
+          return fetch(url, { credentials: 'same-origin', mode: 'no-cors' })
             .then(function (response) {
               // Cache any valid responses, both 1st and 3rd party.
               if (response.ok) {
@@ -68,16 +68,16 @@ self.addEventListener('install', function (event) {
  * Once the Service Worker is installed, this event is fired to allow for
  * cleanup of the old caches and to prime the Service Worker for use.
  */
-self.addEventListener('activate', function(event) {
+self.addEventListener('activate', function (event) {
   // 1) Use the new version of Service Worker immediately instead of waiting for
   //    the user to navigate away and return for a second visit.
   //
   // 2) Delete all caches that are not CURRENT_CACHE.
   var tasks = [
     self.clients.claim(),
-    caches.keys().then(function(cacheNames) {
+    caches.keys().then(function (cacheNames) {
       return Promise.all(
-        cacheNames.map(function(cacheName) {
+        cacheNames.map(function (cacheName) {
           // Delete any cache that doesn't have our version.
           if (CURRENT_CACHE !== cacheName) {
             return caches.delete(cacheName);
@@ -183,7 +183,6 @@ function isImageUrl(imageUrl) {
   return /\.(jpe?g|png|gif|svg|webp)\??/.test(imageUrl.href);
 }
 
-
 /**
  * Mix of several strategies:
  *  - only cache GET requests.
@@ -276,7 +275,7 @@ self.addEventListener('fetch', function (event) {
           return fetchResourceFromCache(error)
             .then(returnResourceFromCache)
             .catch(catchOffline);
-          });
+        });
     }
   };
 

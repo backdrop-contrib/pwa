@@ -127,7 +127,7 @@ function pwa_serviceworker_file() {
   $replace = [
     '[/*cacheConditionsExclude*/]' => drupal_json_encode((array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_exclude', '')))),
     '[/*cacheUrls*/]' => drupal_json_encode($cacheUrls),
-    '[/*cacheUrlsAssets*/]' => drupal_json_encode(_pwa_fetch_offline_page_resources($cacheUrls)),
+    '[/*cacheUrlsAssets*/]' => drupal_json_encode((array) _pwa_fetch_offline_page_resources($cacheUrls)),
     '1/*cacheVersion*/' => variable_get('pwa_swcache_version', 1),
     '/offline' => url('/offline'),
     'offline-image.png' => file_create_url(drupal_get_path('module', 'pwa') . '/assets/offline-image.png'),
