@@ -45,7 +45,7 @@ self.addEventListener('install', function (event) {
       .open(CURRENT_CACHE)
       .then(function (cache) {
         return Promise.all(CACHE_URLS.concat(CACHE_URLS_ASSETS).map(function (url) {
-          return fetch(url, {mode: 'no-cors'})
+          return fetch(url, {credentials: 'same-origin', mode: 'no-cors'})
             .then(function (response) {
               // Cache any valid responses, both 1st and 3rd party.
               if (response.ok) {
