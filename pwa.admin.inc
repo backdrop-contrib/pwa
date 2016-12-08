@@ -34,6 +34,12 @@ function pwa_admin_configuration() {
     '#default_value' => variable_get('pwa_name', variable_get('site_name')),
     '#required' => TRUE,
   ];
+  $form['manifest']['pwa_description'] = [
+    '#type' => 'textfield',
+    '#title' => t('Description'),
+    '#description' => t('A short description of the Progressive Web App. Answer the question "Why do I need this app?"'),
+    '#default_value' => variable_get('pwa_description', ''),
+  ];
   $form['manifest']['pwa_background_color'] = [
     '#type' => 'textfield',
     '#title' => t('Background color'),
