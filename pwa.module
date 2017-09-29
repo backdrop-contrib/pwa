@@ -124,11 +124,21 @@ function pwa_serviceworker_file() {
     $url = url($url);
   }
 
+  // Look up module release from package info.
+  $pwa_module_info = system_get_info('module', 'pwa');
+  $pwa_module_version = $pwa_module_info['version'];
+
+  // Packaging script will always provide the published module version. Checking
+  // for NULL is only so maintainers have something predictable to test against.
+  if ($pwa_module_version == null) {
+    $pwa_module_version = '7.x-1.x-dev';
+  }
+
   $replace = [
     '[/*cacheConditionsExclude*/]' => drupal_json_encode((array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_exclude', '')))),
     '[/*cacheUrls*/]' => drupal_json_encode($cacheUrls),
     '[/*cacheUrlsAssets*/]' => drupal_json_encode((array) _pwa_fetch_offline_page_resources($cacheUrls)),
-    '1/*cacheVersion*/' => variable_get('pwa_swcache_version', 1),
+    '1/*cacheVersion*/' => '\'' . $pwa_module_version . '-v' . variable_get('pwa_swcache_version', 1) . '\'',
     '/offline' => url('/offline'),
     'offline-image.png' => file_create_url(drupal_get_path('module', 'pwa') . '/assets/offline-image.png'),
   ];
