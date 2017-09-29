@@ -66,8 +66,15 @@ function pwa_install() {
  * Implements hook_uninstall().
  */
 function pwa_uninstall() {
+  // Remove variables.
   db_delete('variable')
     ->condition('name', 'pwa_%', 'LIKE')
     ->execute();
   cache_clear_all('variables', 'cache_bootstrap');
+
+  // Delete manifest.json
+  $scheme = file_default_scheme();
+  $directory =  $scheme . '://pwa';
+  $path = $directory . '/manifest.json';
+  file_unmanaged_delete($path);
 }
