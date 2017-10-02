@@ -53,13 +53,12 @@ function pwa_install() {
   variable_set('pwa_swcache_urls',  implode("\n", ['/', '/offline', variable_get('pwa_start_url', '')]));
   pwa_flush_caches();
 
-  // By default give permissions to anon users.
+  // By default give permissions to anonymous users.
   //
   // @TODO: set a status message prompting admins to enable functionality for
-  //        roles themselves.
+  //        other roles themselves.
   //
-  // user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, ['access pwa' => TRUE]);
-  // user_role_grant_permissions(DRUPAL_AUTHENTICATED_RID, ['access pwa' => TRUE]);
+  user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, ['access pwa']);
 }
 
 /**
