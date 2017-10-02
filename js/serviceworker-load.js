@@ -6,7 +6,7 @@
     return;
   }
 
-  navigator.serviceWorker.register(drupalSettings.pwa.path, {scope: Drupal.settings.basePath})
+  navigator.serviceWorker.register(Drupal.settings.pwa.path, {scope: Drupal.settings.basePath})
     .then(function () { })
     .catch(function (error) {
       // Something went wrong.
