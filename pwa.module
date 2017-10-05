@@ -154,6 +154,7 @@ function pwa_preprocess_html(&$variables) {
     return;
   }
 
+  // Add manifest.json to HTML
   drupal_add_html_head([
     '#tag' => 'link',
     '#attributes' => [
@@ -162,6 +163,17 @@ function pwa_preprocess_html(&$variables) {
     ],
   ], 'manifest');
 
+  // Add backup <meta> tag for branding colors. It should always match the
+  // variable for the manifest.
+  drupal_add_html_head([
+    '#tag' => 'meta',
+    '#attributes' => [
+      'name' => 'theme-color',
+      'content' => variable_get('pwa_theme_color', '#ffffff'),
+    ],
+  ], 'theme_color');
+
+  // Load the Service Worker
   drupal_add_library('pwa', 'serviceworker');
   drupal_add_js(['pwa' => ['path' => url('pwa/' . variable_get('pwa_swcache_version', 1) . '/serviceworker.js')]], 'setting');
 }
