@@ -92,8 +92,21 @@ function pwa_manifest_file() {
     'orientation' => variable_get('pwa_orientation', 'portrait'),
     'display' => variable_get('pwa_display', 'standalone'),
 
-    // @TODO: make configurable.
+    // @TODO: make configurable in admin UI. Can currently be done in code via
+    // the alter hook that appears later in this function.
+    //
+    // @see pwa.api.php
     'icons' => [
+      [
+        'src' => url($path . '/assets/druplicon-512.png'),
+        'sizes' => '512x512',
+        'type' => 'image/png',
+      ],
+      [
+        'src' => url($path . '/assets/druplicon-192.png'),
+        'sizes' => '192x192',
+        'type' => 'image/png',
+      ],
       [
         'src' => url($path . '/assets/druplicon-144.png'),
         'sizes' => '144x144',
