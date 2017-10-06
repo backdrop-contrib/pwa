@@ -1,4 +1,4 @@
-(function (drupalSettings, navigator, window) {
+(function (Drupal, navigator, window) {
 
   'use strict';
 
@@ -30,4 +30,4 @@
     });
   /**/
 
-}(Drupal.settings, navigator, window));
+}(Drupal, navigator, window));
