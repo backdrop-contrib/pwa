@@ -28,19 +28,30 @@ function hook_pwa_manifest_alter(&$manifest) {
   // Change a string-based property.
   $manifest['name'] = variable_get('pwa_name', variable_get('site_name'));
 
-  // Change an array-based property. In this case we're manually specifying
-  // which icons will appear in the manifest.
-  $manifest['icons'] = array(
+  // Change array-based properties. In this case we're manually specifying which
+  // icons will appear in the manifest. Normally you have to specify each size
+  // listed here to meet criteria for "Add to Homescreen"
+  $manifest['icons'] = [
     [
-      'src' => url($path . '/assets/customized-1.png'),
+      'src' => url(drupal_get_path('theme', 'MY_THEME') . '/assets/logo-512.png'),
+      'sizes' => '512x512',
+      'type' => 'image/png',
+    ],
+    [
+      'src' => url(drupal_get_path('theme', 'MY_THEME') . '/assets/logo-192.png'),
+      'sizes' => '192x192',
+      'type' => 'image/png',
+    ],
+    [
+      'src' => url(drupal_get_path('theme', 'MY_THEME') . '/assets/logo-144.png'),
       'sizes' => '144x144',
       'type' => 'image/png',
     ],
     [
-      'src' => url($path . '/assets/customized.svg'),
+      'src' => url(drupal_get_path('theme', 'MY_THEME') . '/assets/logo.svg'),
       'type' => 'image/svg+xml',
     ],
-  );
+  ];
 }
 
 /**
