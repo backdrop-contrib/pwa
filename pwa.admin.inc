@@ -84,11 +84,10 @@ function pwa_admin_configuration() {
     ],
     '#default_value' => variable_get('pwa_display', 'standalone'),
   ];
-
   $form['manifest']['pwa_icons'] = [
-    // '#type' => 'textfield',
+    '#type' => 'item',
     '#title' => t('Icons'),
-    '#description' => t('For now, you must use <code>hook_pwa_manifest_alter()</code> to configure icons.'),
+    '#description' => t('Use <code>hook_pwa_manifest_alter()</code> to configure custom icons. <a href="@manifest-example" target="_blank" rel="noopener">See official example</a>.', ['@manifest-example' => 'https://cgit.drupalcode.org/pwa/tree/pwa.api.php?h=7.x-1.x#n13']),
     '#default_value' => variable_get('pwa_icons', ''),
   ];
 
@@ -129,7 +128,7 @@ function pwa_admin_configuration() {
 }
 
 /**
- * Helper function to reset Service Worker once form is submitted.
+ * Helper function to refresh Service Worker once admin settings are saved.
  */
 function pwa_admin_configuration_submit($form, &$form_state) {
   pwa_flush_caches();
