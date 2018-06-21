@@ -78,10 +78,11 @@ function pwa_admin_configuration() {
     '#title' => t('Display'),
     '#options' => [
       'fullscreen' => t('Full screen'),
-      'standalone' => t('Standalone (as an app)'),
+      'standalone' => t('Standalone'),
       'minimal-ui' => t('Minimal UI'),
       'browser'    => t('Browser'),
     ],
+    '#description' => t('Determines whether the PWA will behave like a web page or a native app. <a href="@mdn-display" target="_blank" rel="noopener">Read more at MDN</a>.', ['@mdn-display' => 'https://developer.mozilla.org/en-US/docs/Web/Manifest#display']),
     '#default_value' => variable_get('pwa_display', 'standalone'),
   ];
   $form['manifest']['pwa_icons'] = [
