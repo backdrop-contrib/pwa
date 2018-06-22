@@ -100,6 +100,17 @@ function pwa_admin_configuration() {
     '#title' => t('Service Worker'),
     '#description' => t('Configure behavior of the Service Worker.'),
   ];
+  $form['sw']['pwa_sw_registration_event'] = [
+    '#type' => 'select',
+    '#title' => t('When should the Service Worker be registered?'),
+    '#options' => [
+      'immediate' => t('as soon as possible'),
+      'documentready' => t('when DOM is ready'),
+      'windowonload' => t('after CSS, JS and images have loaded'),
+    ],
+    '#description' => t('Registering during page load can have adverse effects on performance. The default is to wait until CSS, JS, and images have finished loading.'),
+    '#default_value' => variable_get('pwa_sw_registration_event', PWA_SW_REGISTRATION_EVENT_DEFAULT),
+  ];
   $form['sw']['pwa_swcache_exclude'] = [
     '#type' => 'textarea',
     '#title' => t('Exclude URLs patterns'),

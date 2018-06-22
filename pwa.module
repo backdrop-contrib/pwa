@@ -3,6 +3,8 @@
  * @file
  */
 
+define('PWA_SW_REGISTRATION_EVENT_DEFAULT', 'windowonload');
+
 /**
  * Implements hook_permission().
  */
@@ -63,7 +65,10 @@ function pwa_library() {
       'js' => [
         $path . '/js/serviceworker-load.js' => ['scope' => 'footer'],
         0 => [
-          'data' => ['pwa' => ['path' => url('/pwa/%/serviceworker.js')]],
+          'data' => ['pwa' => [
+            'path' => url('/pwa/%/serviceworker.js'),
+            'registrationEvent' => variable_get('pwa_sw_registration_event', PWA_SW_REGISTRATION_EVENT_DEFAULT),
+          ]],
           'type' => 'setting',
         ],
       ],
