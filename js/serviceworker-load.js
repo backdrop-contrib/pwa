@@ -1,7 +1,7 @@
 (function (Drupal, navigator, window, $) {
-
   'use strict';
 
+  // Feature detection for SW
   if (!('serviceWorker' in navigator)) {
     return;
   }
@@ -14,7 +14,7 @@
     navigator.serviceWorker
     .register(Drupal.settings.pwa.path, {scope: Drupal.settings.basePath})
     .then(function () {
-
+      // Everything ok!
     })
     .catch(function (error) {
       // Something went wrong.

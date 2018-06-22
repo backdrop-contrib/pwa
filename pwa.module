@@ -3,6 +3,7 @@
  * @file
  */
 
+define('PWA_MODULE_ACTIVE_ROUTE', 'pwa/module-active');
 define('PWA_SW_REGISTRATION_EVENT_DEFAULT', 'windowonload');
 
 /**
@@ -41,6 +42,13 @@ function pwa_menu() {
     'type' => MENU_CALLBACK,
   ];
 
+  $items[PWA_MODULE_ACTIVE_ROUTE] = [
+    'page callback' => 'pwa_module_active',
+    'access arguments' => ['access pwa'],
+    'file' => 'pwa.pages.inc',
+    'type' => MENU_CALLBACK,
+  ];
+
   $items['admin/config/system/pwa'] = [
     'title' => 'Progressive Web App configuration',
     'description' => 'Configure manifest and service worker strategy.',
@@ -60,7 +68,7 @@ function pwa_library() {
   $path = drupal_get_path('module', 'pwa');
   return [
     'serviceworker' => [
-      'version' => '0.1',
+      'version' => '0.2',
       'js' => [
         $path . '/js/serviceworker-load.js' => ['scope' => 'footer'],
         0 => [
@@ -153,7 +161,7 @@ function pwa_serviceworker_file() {
   }
 
   $replace = [
-    '[/*cacheConditionsExclude*/]' => drupal_json_encode((array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_exclude', '')))),
+    '[/*cacheConditionsExclude*/]' => drupal_json_encode((array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_swcache_exclude', '[\''. PWA_MODULE_ACTIVE_ROUTE .'\']')))),
     '[/*cacheUrls*/]' => drupal_json_encode($cacheUrls),
     '[/*cacheUrlsAssets*/]' => drupal_json_encode((array) _pwa_fetch_offline_page_resources($cacheUrls)),
     '1/*cacheVersion*/' => '\'' . $pwa_module_version . '-v' . variable_get('pwa_swcache_version', 1) . '\'',

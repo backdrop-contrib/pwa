@@ -33,6 +33,7 @@ function pwa_serviceworker_file_data($version = 1) {
   return $data;
 }
 
+
 /**
  * Default page when for when the user has no connection.
  *
@@ -47,6 +48,23 @@ function pwa_offline_page() {
     '#value' => 'You are offline.',
     '#attributes' => [
       'data-drupal-pwa-offline' => TRUE,
+    ],
+  ];
+}
+
+
+/**
+ * Route to confirm for SW that module is still active.
+ *
+ * @return string
+ */
+function pwa_module_active() {
+  return [
+    '#theme' => 'html_tag',
+    '#tag' => 'h1',
+    '#value' => 'PWA module is installed.',
+    '#attributes' => [
+      'data-drupal-pwa-active' => TRUE,
     ],
   ];
 }

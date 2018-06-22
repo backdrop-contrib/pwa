@@ -9,35 +9,45 @@
 // using a fresh cache, then increment the CACHE_VERSION value. It will kick off
 // the service worker update flow and the old cache(s) will be purged as part of
 // the activate event handler when the updated service worker is activated.
-var CACHE_VERSION = 1/*cacheVersion*/;
+const CACHE_VERSION = 1/*cacheVersion*/;
 
 // Never include these URLs in the SW cache.
-var CACHE_EXCLUDE = [/*cacheConditionsExclude*/].map(function (r) {return new RegExp(r);});
+const CACHE_EXCLUDE = [/*cacheConditionsExclude*/].map(function (r) {return new RegExp(r);});
 
 // Cached pages.
-var CACHE_URLS = [/*cacheUrls*/];
+let CACHE_URLS = [/*cacheUrls*/];
 
 // Cached assets.
-var CACHE_URLS_ASSETS = [/*cacheUrlsAssets*/];
+const CACHE_URLS_ASSETS = [/*cacheUrlsAssets*/];
 
 // When no connection is available, show this URL instead of the content that
 // should be available at the URL. This URL is never shown in the browser.
-var CACHE_OFFLINE = '/offline';
+const CACHE_OFFLINE = '/offline';
 
 // Image on the URL specified by CACHE_OFFLINE.
-var CACHE_OFFLINE_IMAGE = 'offline-image.png';
+const CACHE_OFFLINE_IMAGE = 'offline-image.png';
 
 // @TODO: add all images from the manifest.
 CACHE_URLS.push(CACHE_OFFLINE_IMAGE);
 CACHE_URLS.push(CACHE_OFFLINE);
 
 // Cache prefix + version.
-var CURRENT_CACHE = 'all-cache-v' + CACHE_VERSION;
+const CURRENT_CACHE = 'all-cache-v' + CACHE_VERSION;
 
-// Install the Service Worker. This even runs only once for the entire life of
-// the CURRENT_CACHE variable. It will only run again once the value of
-// CURRENT_CACHE changes, OR when the contents of this file change in some other
-// way.
+// Phone-home URL
+const PWA_PHONE_HOME_URL = '/pwa/module-active';
+
+// Phone-home should only happen once per life of the SW. This is initialized to
+// FALSE and will be set to TRUE during phone-home. When the Service Worker goes
+// idle it will reset the variable and the next time it activates, it will once
+// again phone-home.
+let PWA_PHONE_HOME_ALREADY = false;
+
+// Install the Service Worker.
+//
+// This even runs only once for the entire life of the CURRENT_CACHE variable.
+// It will only run again once the value of CURRENT_CACHE changes, OR when the
+// contents of this file change in any way.
 self.addEventListener('install', function (event) {
   // Install assets for minimum viable website (MVW).
   if (CACHE_URLS.length) {
@@ -132,7 +142,7 @@ function catchOfflineImage(error) {
  * @param {Error} error
  */
 function logError(error) {
-  console.log(error);
+  console.error(error);
   return Response.error();
 }
 
@@ -191,6 +201,8 @@ function isImageUrl(imageUrl) {
  *  - Do not cache images or HTTP errors and redirects.
  */
 self.addEventListener('fetch', function (event) {
+  // During every request give SW the chance to phone-home and unregister.
+  phoneHome();
 
   /**
    * @param {Request} request
@@ -242,7 +254,7 @@ self.addEventListener('fetch', function (event) {
         .catch(logError);
     }
     else {
-      console.log("Response not cacheable: ", response);
+      console.error("Response not cacheable: ", response);
     }
     return response;
   }
@@ -297,6 +309,76 @@ self.addEventListener('fetch', function (event) {
     }
   }
   else {
-    console.log('Excluded URL: ', event.request.url);
+    console.debug('PWA: Excluded URL', event.request.url);
   }
 });
+
+
+/**
+ * Phone home
+ *
+ * Check and see if the Drupal module still exists. The module specifies a
+ * dedicated path and when the module is disabled or uninstalled, the URL
+ * will 404, signalling to the SW that it needs to unregister itself.
+ *
+ * The SW stores the timestamp of the previous phone-home to avoid doing this
+ * too often.
+ */
+function phoneHome() {
+  // Avoid constant phoning-home. Once this function has run, don't run again
+  // until SW goes idle.
+  if (PWA_PHONE_HOME_ALREADY) {
+    console.debug('PWA: Phone-home - Last check was recent. Aborting.');
+    return Promise.resolve();
+  }
+
+  // Fetch phone-home URL and process response.
+  let phoneHomeUrl = fetch(PWA_PHONE_HOME_URL)
+  .then(function (response) {
+    // if no network, don't try to phone-home.
+    if (!navigator.onLine) {
+      console.debug('PWA: Phone-home - Network not detected.');
+    }
+
+    // if network + 200, do nothing
+    if (response.status === 200) {
+      console.debug('PWA: Phone-home - Network detected, module detected.');
+    }
+
+    // if network + 404, uninstall
+    if (response.status === 404) {
+      console.debug('PWA: Phone-home - Network detected, module NOT detected. UNINSTALLING.');
+
+      // Let SW attempt to unregister itself.
+      self.registration.unregister()
+        .then(function(success) {
+          // Delete all caches since the SW is redundant.
+          //
+          // @TODO: restrict this to known caches.
+          if (success) {
+            caches.keys().then(function(names) {
+              for (let name of names) {
+                console.debug('PWA: Deleting cache with name ', name);
+                caches.delete(name);
+              }
+              console.debug('PWA: Phone-home - Service Worker has unregistered itself and destroyed old caches since the PWA Drupal module could not be detected.');
+            });
+          }
+          else {
+            console.error('PWA: Phone-home - Service Worker could not unregister itself. It might be necessary to manually delete this Service Worker using browser devtools.');
+          }
+        })
+        .catch(function(error) {
+          console.error('PWA: Phone-home - ', error);
+        });
+    }
+
+    // Enable flag to suppress future phone-homes until SW goes idle.
+    PWA_PHONE_HOME_ALREADY = true;
+
+    return Promise.resolve();
+  })
+  .catch(function(error) {
+    console.error('PWA: Phone-home - ', error);
+  });
+};
