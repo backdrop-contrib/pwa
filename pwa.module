@@ -93,11 +93,14 @@ function pwa_library() {
  */
 function pwa_manifest_file() {
   $path = drupal_get_path('module', 'pwa');
+  global $language;
 
   $manifest = [
     'name' => variable_get('pwa_name', variable_get('site_name')),
     'short_name' => variable_get('pwa_short_name', variable_get('site_name')),
     'description' => variable_get('pwa_description', ''),
+    'lang' => $language->language,
+    'dir' => $language->direction == LANGUAGE_LTR ? 'ltr' : 'rtl',
     'background_color' => variable_get('pwa_background_color', '#ffffff'),
     'theme_color' => variable_get('pwa_theme_color', '#ffffff'),
     'start_url' => variable_get('pwa_start_url', '/'),
