@@ -28,6 +28,7 @@ const CACHE_OFFLINE = '/offline';
 const CACHE_OFFLINE_IMAGE = 'offline-image.png';
 
 // @TODO: add all images from the manifest.
+CACHE_URLS.push(CACHE_URLS_ASSETS);
 CACHE_URLS.push(CACHE_OFFLINE_IMAGE);
 CACHE_URLS.push(CACHE_OFFLINE);
 

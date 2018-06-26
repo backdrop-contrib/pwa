@@ -231,7 +231,7 @@ function pwa_flush_caches() {
  * @return array
  */
 function _pwa_fetch_offline_page_resources($pages) {
-  $ressources = [];
+  $resources = [];
 
   foreach ($pages as $page) {
     $response = drupal_http_request(url($page, ['absolute' => TRUE]));
@@ -239,22 +239,21 @@ function _pwa_fetch_offline_page_resources($pages) {
       break;
     }
     $dom = new DOMDocument();
-    // Ignore warnings during HTML soup loading.
+    // Suppress warnings during HTML soup loading.
     @$dom->loadHTML($response->data);
     $xpath = new DOMXPath($dom);
 
-    $ressources = [];
     foreach ($xpath->query('//script[@src]') as $script) {
-      $ressources[] = $script->getAttribute('src');
+      $resources[] = $script->getAttribute('src');
     }
     foreach ($xpath->query('//link[@rel="stylesheet"]') as $stylesheet) {
-      $ressources[] = $stylesheet->getAttribute('href');
+      $resources[] = $stylesheet->getAttribute('href');
     }
     foreach ($xpath->query('//img[@src]') as $stylesheet) {
-      $ressources[] = $stylesheet->getAttribute('src');
+      $resources[] = $stylesheet->getAttribute('src');
     }
   }
 
-  $dedup = array_unique($ressources);
-  return $dedup;
+  $dedupe = array_unique($resources);
+  return $dedupe;
 }
