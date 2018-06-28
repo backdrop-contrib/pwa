@@ -260,3 +260,10 @@ function _pwa_fetch_offline_page_resources($pages) {
   $dedupe = array_unique($resources);
   return $dedupe;
 }
+
+/**
+ * Implements hook_modernizr_info().
+ */
+function pwa_modernizr_info() {
+  return ['serviceworker'];
+}
