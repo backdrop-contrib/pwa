@@ -131,26 +131,26 @@ function pwa_admin_configuration_sw() {
     '#default_value' => variable_get('pwa_sw_registration_event', PWA_SW_REGISTRATION_EVENT_DEFAULT),
   ];
 
-  $form['sw']['pwa_swcache_exclude'] = [
+  $form['sw']['pwa_sw_cache_exclude'] = [
     '#type' => 'textarea',
     '#title' => t('Exclude URLs patterns'),
     '#description' => t('Paths matching these patterns will not be cached by the Service Worker. One JavaScript regex per line.'),
-    '#default_value' => variable_get('pwa_swcache_exclude', implode("\n", ['admin/.*'])),
+    '#default_value' => variable_get('pwa_sw_cache_exclude', implode("\n", ['admin/.*'])),
   ];
 
-  $form['sw']['pwa_swcache_urls'] = [
+  $form['sw']['pwa_sw_cache_urls'] = [
     '#type' => 'textarea',
     '#title' => t('URLs to cache on install'),
     '#description' => t('Cache these URLs when the Service Worker is installed. If a URL is a page all its CSS and JS will be cached automatically.'),
-    '#default_value' => variable_get('pwa_swcache_urls', implode("\n", ['/', '/offline', variable_get('pwa_start_url', '')])),
+    '#default_value' => variable_get('pwa_sw_cache_urls', implode("\n", ['/', '/offline', variable_get('pwa_start_url', '')])),
   ];
 
-  $form['sw']['pwa_swcache_version'] = [
+  $form['sw']['pwa_sw_cache_version'] = [
     '#type' => 'textfield',
     '#title' => t('Cache version'),
     '#description' => t('Changing this number will invalidate all Service Worker caches. Use it when assets have significantly changed or if you want to force a cache refresh for all clients.'),
     '#size' => 2,
-    '#default_value' => variable_get('pwa_swcache_version', 1),
+    '#default_value' => variable_get('pwa_sw_cache_version', 1),
   ];
 
   $form = system_settings_form($form);
