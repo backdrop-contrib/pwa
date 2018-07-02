@@ -49,8 +49,8 @@ function pwa_install() {
   $directory = file_default_scheme() . '://pwa';
   file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
 
-  variable_set('pwa_swcache_exclude', implode("\n", ['admin/.*']));
-  variable_set('pwa_swcache_urls',  implode("\n", ['/', '/offline', variable_get('pwa_start_url', '')]));
+  variable_set('pwa_sw_cache_exclude', implode("\n", ['admin/.*']));
+  variable_set('pwa_sw_cache_urls',  implode("\n", ['/', '/offline', variable_get('pwa_start_url', '')]));
   pwa_flush_caches();
 
   // By default give permissions to anonymous users.
