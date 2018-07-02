@@ -132,9 +132,9 @@ function pwa_manifest_file() {
     'orientation' => variable_get('pwa_orientation', 'portrait'),
     'display' => variable_get('pwa_display', 'standalone'),
 
-    // @TODO: make configurable in admin UI. Can currently be done in code via
-    // the alter hook that appears later in this function.
+    // Custom icons have to be defined in hook_pwa_manifest_alter().
     //
+    // @see https://www.drupal.org/project/pwa/issues/2983031
     // @see pwa.api.php
     'icons' => [
       [
