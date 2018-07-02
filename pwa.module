@@ -49,17 +49,42 @@ function pwa_menu() {
     'type' => MENU_CALLBACK,
   ];
 
-  $items['admin/config/system/pwa'] = [
-    'title' => 'Progressive Web App configuration',
-    'description' => 'Configure manifest and service worker strategy.',
+  // Admin settings for manifest.json
+  $items['admin/config/system/pwa/manifest'] = [
+    'title' => t('Add to Homescreen'),
+    'description' => 'Control how your website appears on mobile devices when used as a PWA.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => ['pwa_admin_configuration'],
+    'page arguments' => ['pwa_admin_configuration_manifest'],
     'access arguments' => ['administer pwa'],
     'file' => 'pwa.admin.inc',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  ];
+
+  // Admin settings to control how SW is loaded and cached.
+  $items['admin/config/system/pwa/serviceworker'] = [
+    'title' => 'Service Worker',
+    'description' => 'Technical configuration for PWA Service Worker.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => ['pwa_admin_configuration_sw'],
+    'access arguments' => ['administer pwa'],
+    'file' => 'pwa.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+  ];
+
+  // Specify manifest settings as default landing page when using system nav.
+  $items['admin/config/system/pwa'] = [
+    'title' => t('Progressive Web App'),
+    'description' => 'Control how your website appears on mobile devices when used as a PWA.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => ['pwa_admin_configuration_manifest'],
+    'access arguments' => ['administer pwa'],
+    'file' => 'pwa.admin.inc',
+    'type' => MENU_NORMAL_ITEM,
   ];
 
   return $items;
 }
+
 
 /**
  * Implements hook_library().
