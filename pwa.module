@@ -112,11 +112,11 @@ function pwa_library() {
 }
 
 /**
- * Generate the JSON of the manifest file.
+ * Generate the for the manifest file.
  *
- * @return string
+ * @return array
  */
-function pwa_manifest_file() {
+function _pwa_manifest_data() {
   $path = drupal_get_path('module', 'pwa');
   global $language;
 
@@ -161,6 +161,17 @@ function pwa_manifest_file() {
 
   drupal_alter('pwa_manifest', $manifest);
 
+  return $manifest;
+}
+
+/**
+ * Generate JSON of the manifest data. This is the final file used by browsers.
+ *
+ * @return string
+ */
+function _pwa_manifest_file() {
+  $manifest = _pwa_manifest_data();
+
   return drupal_json_encode($manifest);
 }
 
@@ -174,6 +185,20 @@ function pwa_serviceworker_file() {
   $sw = file_get_contents($path . '/js/serviceworker.js');
   $cacheUrls = (array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_sw_cache_urls', '')));
 
+  // Get icons list and convert into array of sources.
+  $manifest = _pwa_manifest_data();
+  $cacheIcons = [];
+  foreach($manifest['icons'] as $icon) {
+    $cacheIcons[] = $icon['src'];
+  }
+
+  // Combine URLs from admin UI with manifest icons.
+  $cacheWhitelist = array_merge($cacheUrls, $cacheIcons);
+
+  // Turn all the paths into fully-qualified URLs.
+  foreach ($cacheWhitelist as &$url) {
+    $url = url($url);
+  }
   foreach ($cacheUrls as &$url) {
     $url = url($url);
   }
@@ -190,7 +215,7 @@ function pwa_serviceworker_file() {
 
   $replace = [
     '[/*cacheConditionsExclude*/]' => drupal_json_encode((array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_sw_cache_exclude', '[\''. PWA_MODULE_ACTIVE_ROUTE .'\']')))),
-    '[/*cacheUrls*/]' => drupal_json_encode($cacheUrls),
+    '[/*cacheUrls*/]' => drupal_json_encode($cacheWhitelist),
     '[/*cacheUrlsAssets*/]' => drupal_json_encode((array) _pwa_fetch_offline_page_resources($cacheUrls)),
     '1/*cacheVersion*/' => '\'' . $pwa_module_version . '-v' . variable_get('pwa_sw_cache_version', 1) . '\'',
     '/offline' => url('/offline'),
@@ -239,8 +264,8 @@ function pwa_flush_caches() {
   $directory =  $scheme . '://pwa';
   file_prepare_directory($directory, FILE_CREATE_DIRECTORY);
 
-  // Create the manifest file, create a static file with all the data.
-  $manifest = pwa_manifest_file();
+  // Create the static manifest file with all the data.
+  $manifest = _pwa_manifest_file();
   $manifest_uri = file_unmanaged_save_data($manifest, $directory . '/manifest.json', FILE_EXISTS_REPLACE);
   $manifest_url = file_create_url($manifest_uri);
   variable_set('pwa_filecache_manifest', str_replace($GLOBALS['base_url'] . '/', base_path(), $manifest_url));
