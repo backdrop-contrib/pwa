@@ -26,7 +26,7 @@ function pwa_serviceworker_file_data($version = 1) {
     $data = $data->data;
   }
   else {
-    $data = pwa_serviceworker_file();
+    $data = _pwa_serviceworker_file();
     cache_set('pwa:serviceworker', $data, 'cache');
   }
 

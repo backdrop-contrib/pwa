@@ -180,7 +180,7 @@ function _pwa_manifest_file() {
  *
  * @return string
  */
-function pwa_serviceworker_file() {
+function _pwa_serviceworker_file() {
   $path = drupal_get_path('module', 'pwa');
   $sw = file_get_contents($path . '/js/serviceworker.js');
   $cacheUrls = (array) preg_split("/\r\n|\n|\r/", trim(variable_get('pwa_sw_cache_urls', '')));
@@ -273,7 +273,7 @@ function pwa_flush_caches() {
   // Create the serviceworker file in cache so it can be served from a menu
   // callback so additional headers can be sent with the file.
   // @see pwa_deliver_js_file().
-  cache_set('pwa:serviceworker', pwa_serviceworker_file(), 'cache');
+  cache_set('pwa:serviceworker', _pwa_serviceworker_file(), 'cache');
 }
 
 /**
