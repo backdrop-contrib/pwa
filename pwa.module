@@ -225,6 +225,38 @@ function _pwa_serviceworker_file() {
 }
 
 /**
+ * List all JS and CSS assets present in $pages so they can be cached.
+ *
+ * @param $pages
+ *
+ * @return array
+ */
+function _pwa_fetch_offline_page_resources($pages) {
+  $resources = [];
+
+  foreach ($pages as $page) {
+    $response = drupal_http_request(url($page, ['absolute' => TRUE]));
+
+    $dom = new DOMDocument();
+    @$dom->loadHTML($response->data);
+
+    $xpath = new DOMXPath($dom);
+    foreach ($xpath->query('//script[@src]') as $script) {
+      $resources[] = $script->getAttribute('src');
+    }
+    foreach ($xpath->query('//link[@rel="stylesheet"][@href]') as $stylesheet) {
+      $resources[] = $stylesheet->getAttribute('href');
+    }
+    foreach ($xpath->query('//img[@src]') as $image) {
+      $resources[] = $image->getAttribute('src');
+    }
+  }
+
+  $dedupe = array_unique($resources);
+  return $dedupe;
+}
+
+/**
  * Implements hook_page_alter().
  */
 function pwa_preprocess_html(&$variables) {
@@ -274,41 +306,6 @@ function pwa_flush_caches() {
   // callback so additional headers can be sent with the file.
   // @see pwa_deliver_js_file().
   cache_set('pwa:serviceworker', _pwa_serviceworker_file(), 'cache');
-}
-
-/**
- * List all JS and CSS assets present in $pages so they can be cached.
- *
- * @param $pages
- *
- * @return array
- */
-function _pwa_fetch_offline_page_resources($pages) {
-  $resources = [];
-
-  foreach ($pages as $page) {
-    $response = drupal_http_request(url($page, ['absolute' => TRUE]));
-    if (explode('/', $response->headers['content-type'], 2)[0] === 'image') {
-      break;
-    }
-    $dom = new DOMDocument();
-    // Suppress warnings during HTML soup loading.
-    @$dom->loadHTML($response->data);
-    $xpath = new DOMXPath($dom);
-
-    foreach ($xpath->query('//script[@src]') as $script) {
-      $resources[] = $script->getAttribute('src');
-    }
-    foreach ($xpath->query('//link[@rel="stylesheet"]') as $stylesheet) {
-      $resources[] = $stylesheet->getAttribute('href');
-    }
-    foreach ($xpath->query('//img[@src]') as $stylesheet) {
-      $resources[] = $stylesheet->getAttribute('src');
-    }
-  }
-
-  $dedupe = array_unique($resources);
-  return $dedupe;
 }
 
 /**
