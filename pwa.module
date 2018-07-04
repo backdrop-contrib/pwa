@@ -228,7 +228,8 @@ function _pwa_serviceworker_file() {
 }
 
 /**
- * List all JS and CSS assets present in $pages so they can be cached.
+ * Discover CSS/JS assets present in offline URLs so they can be cached during
+ * the Service Worker install event.
  *
  * @param $pages
  *
@@ -237,6 +238,10 @@ function _pwa_serviceworker_file() {
 function _pwa_fetch_offline_page_resources($pages) {
   $resources = [];
 
+  // For each Drupal path, request the HTML response and parse any CSS/JS found
+  // within the HTML. Since this is the pure HTML response, any DOM modifications
+  // that trigger new requests cannot be accounted for. An example would be an
+  // asynchronously-loaded webfont.
   foreach ($pages as $page) {
     $response = drupal_http_request(url($page, ['absolute' => TRUE]));
 
