@@ -94,7 +94,7 @@ function pwa_admin_configuration_manifest() {
 
   $form['manifest']['pwa_icons'] = [
     '#type' => 'item',
-    '#title' => t('Icons'),
+    '#title' => t('Branding icons'),
     '#description' => t('Use <code>hook_pwa_manifest_alter()</code> to configure custom icons. <a href="@manifest-example" target="_blank" rel="noopener">See official example</a>.', ['@manifest-example' => 'https://cgit.drupalcode.org/pwa/tree/pwa.api.php?h=7.x-1.x#n13']),
     '#default_value' => variable_get('pwa_icons', ''),
   ];
