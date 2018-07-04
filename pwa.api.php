@@ -11,7 +11,7 @@
  */
 
 /**
- * Manually configure manifest.json
+ * Manually alter manifest.json
  *
  * This hook allows manual configuration of the manifest.json file. Some of the
  * options can be configured in the admin settings of the module, but it can all
@@ -21,8 +21,7 @@
  * Since $manifest is passed by reference, any changes made to $manifest are
  * automatically registered.
  *
- * @return
- *   An array of options that are used to build manifest.json
+ * @param array &$manifest Modified options that are used to build manifest.json
  */
 function hook_pwa_manifest_alter(&$manifest) {
   // Change a string-based property.
