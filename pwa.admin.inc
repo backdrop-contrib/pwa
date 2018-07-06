@@ -149,7 +149,7 @@ function pwa_admin_configuration_sw() {
     '#type' => 'textfield',
     '#title' => t('Cache version'),
     '#description' => t('Changing this number will invalidate all Service Worker caches. Use it when assets have significantly changed or if you want to force a cache refresh for all clients.'),
-    '#size' => 2,
+    '#size' => 5,
     '#default_value' => variable_get('pwa_sw_cache_version', 1),
   ];
 
