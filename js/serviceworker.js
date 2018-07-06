@@ -356,28 +356,7 @@ function phoneHome() {
       console.debug('PWA: Phone-home - Network detected, module NOT detected. UNINSTALLING.');
 
       // Let SW attempt to unregister itself.
-      self.registration.unregister()
-        .then(function(success) {
-          // Current code deletes all caches, but they should be restricted to
-          // Cache keys that match our module's naming convention.
-          //
-          // @see: https://www.drupal.org/project/pwa/issues/2984140
-          if (success) {
-            caches.keys().then(function(names) {
-              for (let name of names) {
-                console.debug('PWA: Deleting cache with name ', name);
-                caches.delete(name);
-              }
-              console.debug('PWA: Phone-home - Service Worker has unregistered itself and destroyed old caches since the PWA Drupal module could not be detected.');
-            });
-          }
-          else {
-            console.error('PWA: Phone-home - Service Worker could not unregister itself. It might be necessary to manually delete this Service Worker using browser devtools.');
-          }
-        })
-        .catch(function(error) {
-          console.error('PWA: Phone-home - ', error);
-        });
+      Promise.resolve(pwaUninstallServiceWorker());
     }
 
     // Enable flag to suppress future phone-homes until SW goes idle.
@@ -389,3 +368,31 @@ function phoneHome() {
     console.error('PWA: Phone-home - ', error);
   });
 };
+
+/**
+ * Uninstall Service Worker
+ */
+function pwaUninstallServiceWorker() {
+  return self.registration.unregister()
+  .then(function(success) {
+    // Current code deletes all caches, but they should be restricted to
+    // Cache keys that match our module's naming convention.
+    //
+    // @see: https://www.drupal.org/project/pwa/issues/2984140
+    if (success) {
+      caches.keys().then(function(names) {
+        for (let name of names) {
+          console.debug('PWA: Deleting cache with name ', name);
+          caches.delete(name);
+        }
+        console.debug('PWA: Phone-home - Service Worker has unregistered itself and destroyed old caches since the PWA Drupal module could not be detected.');
+      });
+    }
+    else {
+      console.error('PWA: Phone-home - Service Worker could not unregister itself. It might be necessary to manually delete this Service Worker using browser devtools.');
+    }
+  })
+  .catch(function(error) {
+    console.error('PWA: Phone-home - ', error);
+  });
+}
