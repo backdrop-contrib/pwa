@@ -32,8 +32,11 @@ CACHE_URLS.push(CACHE_URLS_ASSETS);
 CACHE_URLS.push(CACHE_OFFLINE_IMAGE);
 CACHE_URLS.push(CACHE_OFFLINE);
 
+// Cache prefix
+const CACHE_PREFIX = 'pwa-main-';
+
 // Cache prefix + version.
-const CURRENT_CACHE = 'all-cache-v' + CACHE_VERSION;
+const CACHE_CURRENT = CACHE_PREFIX + CACHE_VERSION;
 
 // Phone-home URL
 const PWA_PHONE_HOME_URL = '/pwa/module-active';
@@ -46,14 +49,14 @@ let PWA_PHONE_HOME_ALREADY = false;
 
 // Install the Service Worker.
 //
-// This even runs only once for the entire life of the CURRENT_CACHE variable.
-// It will only run again once the value of CURRENT_CACHE changes, OR when the
+// This even runs only once for the entire life of the CACHE_CURRENT variable.
+// It will only run again once the value of CACHE_CURRENT changes, OR when the
 // contents of this file change in any way.
 self.addEventListener('install', function (event) {
   // Install assets for minimum viable website (MVW).
   if (CACHE_URLS.length) {
     event.waitUntil(caches
-      .open(CURRENT_CACHE)
+      .open(CACHE_CURRENT)
       .then(function (cache) {
         return Promise.all(CACHE_URLS.concat(CACHE_URLS_ASSETS).map(function (url) {
           return fetch(url, { credentials: 'same-origin', mode: 'no-cors' })
@@ -83,14 +86,21 @@ self.addEventListener('activate', function (event) {
   // 1) Use the new version of Service Worker immediately instead of waiting for
   //    the user to navigate away and return for a second visit.
   //
-  // 2) Delete all caches that are not CURRENT_CACHE.
+  // 2) Delete all caches that are not CACHE_CURRENT.
   var tasks = [
     self.clients.claim(),
     caches.keys().then(function (cacheNames) {
       return Promise.all(
         cacheNames.map(function (cacheName) {
-          // Delete any cache that doesn't have our version.
-          if (CURRENT_CACHE !== cacheName) {
+          // Delete any cache that...
+          // 1) has our prefix at the beginning
+          // 2) doesn't exactly match CURRENT_CACHE
+          //
+          // We intentionally skip other caches that lack our hardcoded prefix
+          // in order to allow custom Cache entries from userland.
+          //
+          // @see https://www.drupal.org/project/pwa/issues/2984140
+          if (cacheName.indexOf(CACHE_PREFIX) === 0 && cacheName.indexOf(CACHE_CURRENT) === -1) {
             return caches.delete(cacheName);
           }
         })
@@ -248,7 +258,7 @@ self.addEventListener('fetch', function (event) {
       // the request has already been used and can't be touched again.
       var copy = response.clone();
       caches
-        .open(CURRENT_CACHE)
+        .open(CACHE_CURRENT)
         .then(function (cache) {
           return cache.put(event.request, copy);
         })
@@ -375,15 +385,15 @@ function phoneHome() {
 function pwaUninstallServiceWorker() {
   return self.registration.unregister()
   .then(function(success) {
-    // Current code deletes all caches, but they should be restricted to
-    // Cache keys that match our module's naming convention.
-    //
-    // @see: https://www.drupal.org/project/pwa/issues/2984140
     if (success) {
+      // Delete all Caches that belong to the PWA module.
       caches.keys().then(function(names) {
         for (let name of names) {
-          console.debug('PWA: Deleting cache with name ', name);
-          caches.delete(name);
+          console.debug('cache name: ', name);
+          if (name.indexOf(CACHE_PREFIX) !== -1) {
+            console.debug('PWA: Deleting cache with name ', name);
+            caches.delete(name);
+          }
         }
         console.debug('PWA: Phone-home - Service Worker has unregistered itself and destroyed old caches since the PWA Drupal module could not be detected.');
       });
