@@ -299,9 +299,14 @@ self.addEventListener('fetch', function (event) {
       event.respondWith(makeRequest.staleWhileRevalidate(event.request));
     }
 
-    // Don't cache images.
+    // Check for save-data Header and avoid caching when present.
     else if (isImageUrl(url)) {
-      event.respondWith(makeRequest.networkWithOfflineImageFallback(event.request));
+      if (event.request.headers.get('save-data')) {
+        console.debug('PWA: refusing to cache image due to save-data header.');
+      }
+      else {
+        event.respondWith(makeRequest.networkWithOfflineImageFallback(event.request));
+      }
     }
 
     // Other resources: network with cache fallback.
