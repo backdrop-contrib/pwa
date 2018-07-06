@@ -353,9 +353,10 @@ function phoneHome() {
       // Let SW attempt to unregister itself.
       self.registration.unregister()
         .then(function(success) {
-          // Delete all caches since the SW is redundant.
+          // Current code deletes all caches, but they should be restricted to
+          // Cache keys that match our module's naming convention.
           //
-          // @TODO: restrict this to known caches.
+          // @see: https://www.drupal.org/project/pwa/issues/2984140
           if (success) {
             caches.keys().then(function(names) {
               for (let name of names) {
