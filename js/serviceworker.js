@@ -292,6 +292,16 @@ self.addEventListener('fetch', function (event) {
         })
         .catch(logError);
     },
+    staleWhileRevalidateImage: function (request) {
+      return fetchResourceFromCache(request)
+        .then(returnResourceFromCache)
+        .catch(function (error) {
+          return fetchResourceFromNetwork(error)
+            .then(cacheNetworkResponse)
+            .catch(catchOfflineImage);
+        })
+        .catch(logError);
+    },
     networkWithCacheFallback: function (request) {
       return fetch(request)
         .then(cacheNetworkResponse)
@@ -314,9 +324,10 @@ self.addEventListener('fetch', function (event) {
     else if (isImageUrl(url)) {
       if (event.request.headers.get('save-data')) {
         console.debug('PWA: refusing to cache image due to save-data header.');
+        event.respondWith(makeRequest.networkWithOfflineImageFallback(event.request));
       }
       else {
-        event.respondWith(makeRequest.networkWithOfflineImageFallback(event.request));
+        event.respondWith(makeRequest.staleWhileRevalidateImage(event.request));
       }
     }
 
