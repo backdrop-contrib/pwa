@@ -206,10 +206,11 @@ function isImageUrl(imageUrl) {
 
 /**
  * Mix of several strategies:
- *  - only cache GET requests.
- *  - for js/css/fonts assets, use stale while revalidate.
- *  - for html pages, use network with cache fallback.
- *  - Do not cache images or HTTP errors and redirects.
+ * - only cache GET requests.
+ * - CSS/JS/fonts use stale while revalidate.
+ * - HTML responses use network with cache fallback.
+ * - Images use stale while revalidate unless `save-data` header is present
+ * - Do NOT cache HTTP errors and redirects.
  */
 self.addEventListener('fetch', function (event) {
   // During every request give SW the chance to phone-home and unregister.
