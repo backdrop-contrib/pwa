@@ -348,9 +348,6 @@ self.addEventListener('fetch', function (event) {
  * Check and see if the Drupal module still exists. The module specifies a
  * dedicated path and when the module is disabled or uninstalled, the URL
  * will 404, signalling to the SW that it needs to unregister itself.
- *
- * The SW stores the timestamp of the previous phone-home to avoid doing this
- * too often.
  */
 function phoneHome() {
   // Avoid constant phoning-home. Once this function has run, don't run again
@@ -358,6 +355,10 @@ function phoneHome() {
   if (PWA_PHONE_HOME_ALREADY) {
     console.debug('PWA: Phone-home - Last check was recent. Aborting.');
     return Promise.resolve();
+  }
+  else {
+    // Enable flag to suppress future phone-homes until SW goes idle.
+    PWA_PHONE_HOME_ALREADY = true;
   }
 
   // Fetch phone-home URL and process response.
@@ -380,9 +381,6 @@ function phoneHome() {
       // Let SW attempt to unregister itself.
       Promise.resolve(pwaUninstallServiceWorker());
     }
-
-    // Enable flag to suppress future phone-homes until SW goes idle.
-    PWA_PHONE_HOME_ALREADY = true;
 
     return Promise.resolve();
   })
