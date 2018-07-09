@@ -38,6 +38,11 @@ const CACHE_PREFIX = 'pwa-main-';
 // Cache prefix + version.
 const CACHE_CURRENT = CACHE_PREFIX + CACHE_VERSION;
 
+// The cache should be assumed to be active by default. After uninstallation has
+// successfully occurred we will set this to false in order to prevent certain
+// conditions where the cache was deleted before new assets were added afterwards.
+let CACHE_ACTIVE = true;
+
 // Phone-home URL
 const PWA_PHONE_HOME_URL = '/pwa/module-active';
 
@@ -47,11 +52,12 @@ const PWA_PHONE_HOME_URL = '/pwa/module-active';
 // again phone-home.
 let PWA_PHONE_HOME_ALREADY = false;
 
+
 // Install the Service Worker.
 //
-// This even runs only once for the entire life of the CACHE_CURRENT variable.
-// It will only run again once the value of CACHE_CURRENT changes, OR when the
-// contents of this file change in any way.
+// This even runs only once for the entire life of the active cache. It will run
+// again once the value of CACHE_CURRENT changes, OR when the contents of this
+// file change in any way.
 self.addEventListener('install', function (event) {
   // Install assets for minimum viable website (MVW).
   if (CACHE_URLS.length) {
@@ -258,12 +264,18 @@ self.addEventListener('fetch', function (event) {
       // Copy now and not in the then() because by that time it's too late,
       // the request has already been used and can't be touched again.
       var copy = response.clone();
-      caches
-        .open(CACHE_CURRENT)
-        .then(function (cache) {
-          return cache.put(event.request, copy);
-        })
-        .catch(logError);
+
+      if (CACHE_ACTIVE) {
+        caches
+          .open(CACHE_CURRENT)
+          .then(function (cache) {
+            return cache.put(event.request, copy);
+          })
+          .catch(logError);
+      }
+      else {
+        console.debug('PWA: The Service Worker has been uninstalled so cache.put() was skipped.');
+      }
     }
     else {
       console.error("Response not cacheable: ", response);
@@ -405,6 +417,10 @@ function pwaUninstallServiceWorker() {
             caches.delete(name);
           }
         }
+
+        // Disallow any future cache.put() coming from fetch listeners.
+        CACHE_ACTIVE = false;
+
         console.debug('PWA: Phone-home - Service Worker has unregistered itself and destroyed old caches since the PWA Drupal module could not be detected.');
       });
     }
