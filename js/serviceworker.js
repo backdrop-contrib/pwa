@@ -6,28 +6,34 @@
 "use strict";
 
 // If at any point you want to force pages that use this service worker to start
-// using a fresh cache, then increment the CACHE_VERSION value. It will kick off
-// the service worker update flow and the old cache(s) will be purged as part of
-// the activate event handler when the updated service worker is activated.
+// using a fresh cache, then increment the CACHE_VERSION value in the Drupal UI.
+// It will kick off the Service Worker update flow and the old cache(s) will be
+// purged as part of the activate event handler when the updated Service Worker
+// is activated.
+//
+// When Drupal replaces `cacheVersion` during server-side processing, it includes
+// the packaged version number. That means any module upgrade will automatically
+// result in a fresh SW installation.
 const CACHE_VERSION = 1/*cacheVersion*/;
 
 // Never include these URLs in the SW cache.
 const CACHE_EXCLUDE = [/*cacheConditionsExclude*/].map(function (r) {return new RegExp(r);});
 
-// Cached pages.
+// Cached pages. Add URLs using the 'Service Worker' tab of the Drupal UI.
 let CACHE_URLS = [/*cacheUrls*/];
 
-// Cached assets.
+// Cached assets. These are extracted using internal HTTP requests during Drupal
+// cache clears and this list will be hardcoded in the resultant SW file.
 const CACHE_URLS_ASSETS = [/*cacheUrlsAssets*/];
 
 // When no connection is available, show this URL instead of the content that
 // should be available at the URL. This URL is never shown in the browser.
 const CACHE_OFFLINE = '/offline';
 
-// Image on the URL specified by CACHE_OFFLINE.
+// When an image hasn't been cached, we use this fallback image instead.
 const CACHE_OFFLINE_IMAGE = 'offline-image.png';
 
-// @TODO: add all images from the manifest.
+// Add critical offline URLs to the required asset list.
 CACHE_URLS.push(CACHE_URLS_ASSETS);
 CACHE_URLS.push(CACHE_OFFLINE_IMAGE);
 CACHE_URLS.push(CACHE_OFFLINE);
@@ -35,7 +41,7 @@ CACHE_URLS.push(CACHE_OFFLINE);
 // Cache prefix
 const CACHE_PREFIX = 'pwa-main-';
 
-// Cache prefix + version.
+// Full cache name: Cache prefix + cache version.
 const CACHE_CURRENT = CACHE_PREFIX + CACHE_VERSION;
 
 // The cache should be assumed to be active by default. After uninstallation has
@@ -53,11 +59,13 @@ const PWA_PHONE_HOME_URL = '/pwa/module-active';
 let PWA_PHONE_HOME_ALREADY = false;
 
 
-// Install the Service Worker.
-//
-// This even runs only once for the entire life of the active cache. It will run
-// again once the value of CACHE_CURRENT changes, OR when the contents of this
-// file change in any way.
+/**
+ * Install the Service Worker.
+ *
+ * This event runs only once for the entire life of the active SW. It will run
+ * again once the value of CACHE_CURRENT changes, OR when the contents of this
+ * file change in any way.
+ */
 self.addEventListener('install', function (event) {
   // Install assets for minimum viable website (MVW).
   if (CACHE_URLS.length) {
@@ -79,7 +87,6 @@ self.addEventListener('install', function (event) {
               return Promise.resolve();
             });
         }));
-        // return cache.addAll(CACHE_URLS.concat(CACHE_URLS_ASSETS));
       }));
   }
 });
@@ -287,7 +294,6 @@ self.addEventListener('fetch', function (event) {
   var isMethodGet = event.request.method === 'GET';
   var notExcludedPath = CACHE_EXCLUDE.every(urlNotExcluded(url.href));
   var includedProtocol = ['http:', 'https:'].indexOf(url.protocol) !== -1;
-  // @TODO cache views ajax request by igoring methods when putting in cache.
 
   var makeRequest = {
     networkWithOfflineImageFallback: function (request) {
