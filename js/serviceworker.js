@@ -34,7 +34,6 @@ const CACHE_OFFLINE = '/offline';
 const CACHE_OFFLINE_IMAGE = 'offline-image.png';
 
 // Add critical offline URLs to the required asset list.
-CACHE_URLS.push(CACHE_URLS_ASSETS);
 CACHE_URLS.push(CACHE_OFFLINE_IMAGE);
 CACHE_URLS.push(CACHE_OFFLINE);
 
