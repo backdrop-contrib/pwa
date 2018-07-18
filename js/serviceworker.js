@@ -72,15 +72,13 @@ self.addEventListener('install', function (event) {
       .open(CACHE_CURRENT)
       .then(function (cache) {
         return Promise.all(CACHE_URLS.concat(CACHE_URLS_ASSETS).map(function (url) {
+          // Instead of directly adding URLs to Cache API, reformat to include
+          // the `no-cors` header to enable caching of third-party assets such
+          // as hosted fonts, CDN libraries, etc.
           return fetch(url, { credentials: 'same-origin', mode: 'no-cors' })
             .then(function (response) {
-              // Cache any valid responses, both 1st and 3rd party.
-              if (response.ok) {
-                return cache.put(url, response);
-              }
-              return Promise.resolve();
+              return cache.put(url, response);
             })
-            // Don't fail, make sure SW is installed.
             .catch(function (error) {
               logError(error);
               return Promise.resolve();
@@ -283,9 +281,32 @@ self.addEventListener('fetch', function (event) {
         console.debug('PWA: The Service Worker has been uninstalled so cache.put() was skipped.');
       }
     }
+
+    // If response.ok was false, try one more time with `no-cors` header which
+    // will allow valid third-party requests to be cached.
     else {
-      console.error("Response not cacheable: ", response);
+      fetch(event.request, { mode: 'no-cors' })
+      .then(function (response) {
+        var copy = response.clone();
+
+        if (CACHE_ACTIVE) {
+          caches
+            .open(CACHE_CURRENT)
+            .then(function (cache) {
+              return cache.put(event.request, copy);
+            })
+            .catch(logError);
+        }
+        else {
+          console.debug('PWA: The Service Worker has been uninstalled so cache.put() was skipped.');
+        }
+      })
+      .catch(function (error) {
+        logError(error);
+        console.error("PWA: Response not cacheable ", response);
+      });
     }
+
     return response;
   }
 
