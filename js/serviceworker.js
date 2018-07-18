@@ -81,7 +81,16 @@ self.addEventListener('install', function (event) {
             })
             .catch(function (error) {
               logError(error);
-              return Promise.resolve();
+
+              // Uncommented Promise.resolve() will allow installation even when
+              // assets aren't successfully cached.
+              //
+              // @TODO: is this conservative enough for a module expected to work
+              //        without extensive configuration?
+              //
+              // @see https://www.drupal.org/project/pwa/issues/2986596
+              //
+              // return Promise.resolve();
             });
         }));
       }));
