@@ -102,9 +102,18 @@ self.addEventListener('install', function (event) {
  * cleanup of the old caches and to prime the Service Worker for use.
  */
 self.addEventListener('activate', function (event) {
-  // 1) Use the new version of Service Worker immediately instead of waiting for
-  //    the user to navigate away and return for a second visit.
+  // The `activate` event happens in one of two situations:
+  // 1) The Service Worker successfully installed and the visitor finished their
+  //    previous session, allowing this current SW to claim control, OR...
+  // 2) TODO: during the `install` event, we execute the `self.skipWaiting()`
+  //    command to immediately pass control to the new SW as soon as it finishes
+  //    installing. This is not yet implemented in the PWA Drupal module.
   //
+  // @see https://www.drupal.org/project/pwa/issues/2986689
+  //
+  // The tasks we perform are:
+  //
+  // 1) Activate new Service Worker and take control of the client(s).
   // 2) Delete all caches that are not CACHE_CURRENT.
   var tasks = [
     self.clients.claim(),
