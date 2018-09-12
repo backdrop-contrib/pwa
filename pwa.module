@@ -27,7 +27,7 @@ function pwa_permission() {
 function pwa_menu() {
   $items = [];
 
-  $items['pwa/serviceworker.js'] = [
+  $items['pwa/serviceworker/js'] = [
     'page callback' => 'pwa_serviceworker_file_data',
     'access arguments' => ['access pwa'],
     'delivery callback' => 'pwa_deliver_js_file',
@@ -98,7 +98,7 @@ function pwa_library() {
         $path . '/js/serviceworker-load.js' => ['scope' => 'footer'],
         0 => [
           'data' => ['pwa' => [
-            'path' => url('/pwa/serviceworker.js'),
+            'path' => url('/pwa/serviceworker/js'),
             'registrationEvent' => variable_get('pwa_sw_registration_event', PWA_SW_REGISTRATION_EVENT_DEFAULT),
           ]],
           'type' => 'setting',
@@ -293,7 +293,7 @@ function pwa_preprocess_html(&$variables) {
 
   // Load the Service Worker
   drupal_add_library('pwa', 'serviceworker');
-  drupal_add_js(['pwa' => ['path' => url('pwa/serviceworker.js')]], 'setting');
+  drupal_add_js(['pwa' => ['path' => url('pwa/serviceworker/js')]], 'setting');
 }
 
 /**
