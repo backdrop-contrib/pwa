@@ -1,5 +1,10 @@
-name = Progressive Web App
-description = Make the website installable on mobile.
+name = PWA
+description = Basic functionality for a Progressive Web App.
 core = 7.x
 
 configure = admin/config/system/pwa
+
+files[] = pwa.admin.inc
+files[] = pwa.install
+files[] = pwa.module
+files[] = pwa.pages.inc
