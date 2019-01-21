@@ -10,7 +10,10 @@ This module provides basic components to progressively enhance your website with
 
 Visit the configuration page (`/admin/configure/development/pwa`) and fill in what you need. To change the logo used in the manifest file the only way now is to implement `hook_pwa_manifest_alter(&$manifest)` and set the icons property. See the `pwa.api.php` file for a code example. The example assumes the images exist within your theme folder. Linking to uploaded media would require different code.
 
-Tip: once you've chosen your icons, add them to the list of "URLs to cache on install" to ensure that they're also available offline.
+## Help! Something is broken!
+
+Do not fear, there are temporary workarounds when the Service Worker causes some trouble. Often you will just need to access the Drupal admin in order to disable to module. For that, you can follow the Troublshooting guide in the [official documentation][3].
 
 [1]: https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API
 [2]: https://developer.mozilla.org/en-US/Add-ons/WebExtensions/manifest.json
+[3]: https://www.drupal.org/docs/7/modules/progressive-web-app-pwa
