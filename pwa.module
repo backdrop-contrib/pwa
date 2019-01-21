@@ -4,6 +4,7 @@
  */
 
 define('PWA_MODULE_ACTIVE_ROUTE', 'pwa/module-active');
+define('PWA_SW_CACHE_EXCLUDE', ['admin/.*', 'user/reset/.*']);
 define('PWA_SW_REGISTRATION_EVENT_DEFAULT', 'windowonload');
 
 /**

@@ -49,7 +49,7 @@ function pwa_install() {
   $directory = file_default_scheme() . '://pwa';
   file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
 
-  variable_set('pwa_sw_cache_exclude', implode("\n", ['admin/.*']));
+  variable_set('pwa_sw_cache_exclude', implode("\n", PWA_SW_CACHE_EXCLUDE));
   variable_set('pwa_sw_cache_urls',  implode("\n", ['/', '/offline', variable_get('pwa_start_url', '')]));
   pwa_flush_caches();
 

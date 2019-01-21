@@ -135,7 +135,7 @@ function pwa_admin_configuration_sw() {
     '#type' => 'textarea',
     '#title' => t('Exclude URLs patterns'),
     '#description' => t('Paths matching these patterns will not be cached by the Service Worker. One JavaScript regex per line.'),
-    '#default_value' => variable_get('pwa_sw_cache_exclude', implode("\n", ['admin/.*'])),
+    '#default_value' => variable_get('pwa_sw_cache_exclude', implode("\n", PWA_SW_CACHE_EXCLUDE)),
   ];
 
   $form['sw']['pwa_sw_cache_urls'] = [
