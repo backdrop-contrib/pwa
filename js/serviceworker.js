@@ -305,18 +305,21 @@ self.addEventListener('fetch', function (event) {
     else {
       fetch(event.request, { mode: 'no-cors' })
       .then(function (response) {
-        var copy = response.clone();
+        // Don't cache redirects or errors.
+        if (response.ok) {
+          var copy = response.clone();
 
-        if (CACHE_ACTIVE) {
-          caches
-            .open(CACHE_CURRENT)
-            .then(function (cache) {
-              return cache.put(event.request, copy);
-            })
-            .catch(logError);
-        }
-        else {
-          console.debug('PWA: The Service Worker has been uninstalled so cache.put() was skipped.');
+          if (CACHE_ACTIVE) {
+            caches
+              .open(CACHE_CURRENT)
+              .then(function (cache) {
+                return cache.put(event.request, copy);
+              })
+              .catch(logError);
+          }
+          else {
+            console.debug('PWA: The Service Worker has been uninstalled so cache.put() was skipped.');
+          }
         }
       })
       .catch(function (error) {
