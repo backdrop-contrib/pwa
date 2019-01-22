@@ -12,8 +12,8 @@ Visit the configuration page (`/admin/configure/development/pwa`) and fill in wh
 
 ## Help! Something is broken!
 
-Do not fear, there are temporary workarounds when the Service Worker causes some trouble. Often you will just need to access the Drupal admin in order to disable to module. For that, you can follow the Troublshooting guide in the [official documentation][3].
+Do not fear, there are temporary workarounds when the Service Worker causes some trouble. Often you will just need to access the Drupal admin in order to disable to module. For that, you can follow the official [Troubleshooting guide][3].
 
 [1]: https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API
 [2]: https://developer.mozilla.org/en-US/Add-ons/WebExtensions/manifest.json
-[3]: https://www.drupal.org/docs/7/modules/progressive-web-app-pwa
+[3]: https://www.drupal.org/docs/7/modules/progressive-web-app-pwa-0/troubleshooting
