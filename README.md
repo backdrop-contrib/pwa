@@ -16,4 +16,4 @@ Do not fear, there are temporary workarounds when the Service Worker causes some
 
 [1]: https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API
 [2]: https://developer.mozilla.org/en-US/Add-ons/WebExtensions/manifest.json
-[3]: https://www.drupal.org/docs/7/modules/progressive-web-app-pwa-0/troubleshooting
+[3]: https://www.drupal.org/docs/7/modules/progressive-web-app-pwa/troubleshooting
