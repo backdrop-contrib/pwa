@@ -51,6 +51,15 @@ function hook_pwa_manifest_alter(&$manifest) {
       'type' => 'image/svg+xml',
     ],
   ];
+
+  // Add a new parameter to specify `orientation`. If your website is designed
+  // to be viewed in landscape by default, the `orientation` setting can help
+  // the PWA look good while the splash/loading screens are displaying.
+  //
+  // We omit this property by default from the module for accessibility reasons.
+  //
+  // @see https://www.drupal.org/project/pwa/issues/3070058
+  $manifest['orientation'] = 'landscape';
 }
 
 /**
