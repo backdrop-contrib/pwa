@@ -1,0 +1,20 @@
+{
+    "_config_name": "pwa.settings",
+    "pwa_short_name": "dynamic value in file /pwa/pwa.module line 126",
+    "pwa_name": "dynamic value in file /pwa/pwa.module line 125",
+    "pwa_description": "",
+    "pwa_background_color": "#ffffff",
+    "pwa_theme_color": "#ffffff",
+    "pwa_start_url": "/",
+    "pwa_orientation": "portrait",
+    "pwa_display": "standalone",
+    "pwa_icons": "",
+    "pwa_sw_registration_event": "windowonload",
+    "pwa_sw_cache_exclude": [
+        "admin/.*",
+        "user/reset/.*"
+    ],
+    "pwa_sw_cache_urls": "",
+    "pwa_sw_cache_version": "1",
+    "pwa_filecache_manifest": ""
+}

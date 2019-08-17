@@ -1,10 +1,7 @@
 name = PWA
 description = Basic functionality for a Progressive Web App.
-core = 7.x
+backdrop = 1.x
+type = module
 
 configure = admin/config/system/pwa
 
-files[] = pwa.admin.inc
-files[] = pwa.install
-files[] = pwa.module
-files[] = pwa.pages.inc

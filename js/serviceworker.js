@@ -6,12 +6,12 @@
 "use strict";
 
 // If at any point you want to force pages that use this service worker to start
-// using a fresh cache, then increment the CACHE_VERSION value in the Drupal UI.
+// using a fresh cache, then increment the CACHE_VERSION value in the Backdrop UI.
 // It will kick off the Service Worker update flow and the old cache(s) will be
 // purged as part of the activate event handler when the updated Service Worker
 // is activated.
 //
-// When Drupal replaces `cacheVersion` during server-side processing, it includes
+// When Backdrop replaces `cacheVersion` during server-side processing, it includes
 // the packaged version number. That means any module upgrade will automatically
 // result in a fresh SW installation.
 const CACHE_VERSION = 1/*cacheVersion*/;
@@ -19,10 +19,10 @@ const CACHE_VERSION = 1/*cacheVersion*/;
 // Never include these URLs in the SW cache.
 const CACHE_EXCLUDE = [/*cacheConditionsExclude*/].map(function (r) {return new RegExp(r);});
 
-// Cached pages. Add URLs using the 'Service Worker' tab of the Drupal UI.
+// Cached pages. Add URLs using the 'Service Worker' tab of the Backdrop UI.
 let CACHE_URLS = [/*cacheUrls*/];
 
-// Cached assets. These are extracted using internal HTTP requests during Drupal
+// Cached assets. These are extracted using internal HTTP requests during Backdrop
 // cache clears and this list will be hardcoded in the resultant SW file.
 const CACHE_URLS_ASSETS = [/*cacheUrlsAssets*/];
 
@@ -107,7 +107,7 @@ self.addEventListener('activate', function (event) {
   //    previous session, allowing this current SW to claim control, OR...
   // 2) TODO: during the `install` event, we execute the `self.skipWaiting()`
   //    command to immediately pass control to the new SW as soon as it finishes
-  //    installing. This is not yet implemented in the PWA Drupal module.
+  //    installing. This is not yet implemented in the PWA Backdrop module.
   //
   // @see https://www.drupal.org/project/pwa/issues/2986689
   //
@@ -404,7 +404,7 @@ self.addEventListener('fetch', function (event) {
 /**
  * Phone home
  *
- * Check and see if the Drupal module still exists. The module specifies a
+ * Check and see if the Backdrop module still exists. The module specifies a
  * dedicated path and when the module is disabled or uninstalled, the URL
  * will 404, signalling to the SW that it needs to unregister itself.
  */
@@ -468,7 +468,7 @@ function pwaUninstallServiceWorker() {
         // Disallow any future cache.put() coming from fetch listeners.
         CACHE_ACTIVE = false;
 
-        console.debug('PWA: Phone-home - Service Worker has unregistered itself and destroyed old caches since the PWA Drupal module could not be detected.');
+        console.debug('PWA: Phone-home - Service Worker has unregistered itself and destroyed old caches since the PWA Backdrop module could not be detected.');
       });
     }
     else {

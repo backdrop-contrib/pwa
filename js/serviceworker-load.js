@@ -1,4 +1,4 @@
-(function (Drupal, navigator, window, $) {
+(function (Backdrop, navigator, window, $) {
   'use strict';
 
   // Feature detection for SW
@@ -12,7 +12,7 @@
    */
   function pwaServiceWorkerRegister() {
     navigator.serviceWorker
-    .register(Drupal.settings.pwa.path, {scope: Drupal.settings.basePath})
+    .register(Backdrop.settings.pwa.path, {scope: Backdrop.settings.basePath})
     .then(function () {
       // Everything ok!
     })
@@ -21,11 +21,11 @@
     });
   }
 
-  // Read Drupal.settings and register SW during the desired event.
-  if (Drupal.settings.pwa.registrationEvent === 'immediate') {
+  // Read Backdrop.settings and register SW during the desired event.
+  if (Backdrop.settings.pwa.registrationEvent === 'immediate') {
     pwaServiceWorkerRegister();
   }
-  else if (Drupal.settings.pwa.registrationEvent === 'documentready') {
+  else if (Backdrop.settings.pwa.registrationEvent === 'documentready') {
     $(document).ready(pwaServiceWorkerRegister);
   }
   else {
@@ -37,7 +37,7 @@
     var loc = window.location;
     // If the page serve is the offline fallback, try a refresh when user
     // get back online.
-    if (loc.pathname !== Drupal.settings.basePath + 'offline' && document.querySelector('[data-drupal-pwa-offline]')) {
+    if (loc.pathname !== Backdrop.settings.basePath + 'offline' && document.querySelector('[data-backdrop-pwa-offline]')) {
       loc.reload();
     }
   });
@@ -50,4 +50,4 @@
     });
   /**/
 
-}(Drupal, navigator, window, jQuery));
+}(Backdrop, navigator, window, jQuery));
