@@ -10,10 +10,7 @@
     "pwa_display": "standalone",
     "pwa_icons": "",
     "pwa_sw_registration_event": "windowonload",
-    "pwa_sw_cache_exclude": [
-        "admin/.*",
-        "user/reset/.*"
-    ],
+    "pwa_sw_cache_exclude": [],
     "pwa_sw_cache_urls": "",
     "pwa_sw_cache_version": "1",
     "pwa_filecache_manifest": ""

@@ -49,8 +49,12 @@ function pwa_install() {
   $directory = file_default_scheme() . '://pwa';
   file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
 
-  config_set('pwa.settings', 'pwa_sw_cache_exclude', implode("\n", PWA_SW_CACHE_EXCLUDE));
-  config_set('pwa.settings', 'pwa_sw_cache_urls', implode("\n", ['/', '/offline', config_get('pwa.settings', 'pwa_start_url')]));
+  $config = config('pwa.settings');
+  $config->set('pwa_sw_cache_exclude', implode("\n", PWA_SW_CACHE_EXCLUDE));
+  $config->set('pwa_sw_cache_urls', implode("\n", ['/', '/offline', config_get('pwa.settings', 'pwa_start_url')]));
+  $config->set('name', config_get('system.core', 'site_name'));
+  $config->set('short_name', config_get('system.core', 'site_name'));
+  $config->save();
   pwa_flush_caches();
 
   // By default give permissions to anonymous users.
@@ -59,11 +63,6 @@ function pwa_install() {
   //        other roles themselves.
   //
   user_role_grant_permissions(BACKDROP_ANONYMOUS_ROLE, ['access pwa']);
-  // Dynamically generated variable data was detected on the following lines.
-  // /pwa/pwa.module line 126
-  // /pwa/pwa.module line 125
-  // /pwa/pwa.module line 130
-  // /pwa/pwa.module line 219
 }
 
 /**

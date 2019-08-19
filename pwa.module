@@ -130,10 +130,10 @@ function _pwa_manifest_data() {
   $config = config('pwa.settings');
   $path = backdrop_get_path('module', 'pwa');
   global $language;
-  $site_name = config_get('system.core', 'site_name');
+
   $manifest = [
-    'name' => !empty($config->get('pwa_name')) ? $config->get('pwa_name') : $site_name,
-    'short_name' => !empty($config->get('pwa_short_name')) ? $config->get('pwa_short_name') : $site_name,
+    'name' => $config->get('pwa_name'),
+    'short_name' => $config->get('pwa_short_name'),
     'description' => $config->get('pwa_description'),
     'lang' => $language->langcode,
     'dir' => $language->direction == LANGUAGE_LTR ? 'ltr' : 'rtl',
