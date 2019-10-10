@@ -1,7 +1,7 @@
 {
     "_config_name": "pwa.settings",
-    "pwa_short_name": "dynamic value in file /pwa/pwa.module line 126",
-    "pwa_name": "dynamic value in file /pwa/pwa.module line 125",
+    "pwa_short_name": "",
+    "pwa_name": "",
     "pwa_description": "",
     "pwa_background_color": "#ffffff",
     "pwa_theme_color": "#ffffff",
