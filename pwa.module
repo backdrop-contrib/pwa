@@ -277,9 +277,9 @@ function _pwa_fetch_offline_page_resources($pages) {
 }
 
 /**
- * Implements hook_page_alter().
+ * Implements hook_preprocess_page().
  */
-function pwa_preprocess_html(&$variables) {
+function pwa_preprocess_page(&$variables) {
   $config = config('pwa.settings');
   if (!user_access('access pwa')) {
     return;
