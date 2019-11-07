@@ -97,7 +97,7 @@ function pwa_admin_configuration_manifest() {
   $form['manifest']['pwa_icons'] = [
     '#type' => 'item',
     '#title' => t('Branding icons'),
-    '#description' => t('Use <code>hook_pwa_manifest_alter()</code> to configure custom icons. <a href="@manifest-example" target="_blank" rel="noopener">See official example</a>.', ['@manifest-example' => 'https://cgit.backdropcode.org/pwa/tree/pwa.api.php?h=7.x-1.x#n13']),
+    '#description' => t('Use <code>hook_pwa_manifest_alter()</code> to configure custom icons. <a href="@manifest-example" target="_blank" rel="noopener">See official example</a>.', ['@manifest-example' => 'https://github.com/backdrop-contrib/pwa/blob/1.x-1.x/pwa.api.php#L13-L53']),
     '#default_value' => $config->get('pwa_icons'),
   ];
 
