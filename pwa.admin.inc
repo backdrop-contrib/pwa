@@ -9,8 +9,8 @@
  */
 function pwa_admin_configuration_manifest() {
   $config = config('pwa.settings');
-  $form['#config'] = 'pwa.settings';
   $form = [];
+  $form['#config'] = 'pwa.settings';
 
   $form['manifest'] = [
     '#type' => 'fieldset',
@@ -114,8 +114,8 @@ function pwa_admin_configuration_manifest() {
  */
 function pwa_admin_configuration_sw() {
   $config = config('pwa.settings');
-  $form['#config'] = 'pwa.settings';
   $form = [];
+  $form['#config'] = 'pwa.settings';
 
   $form['sw'] = [
     '#type' => 'fieldset',
