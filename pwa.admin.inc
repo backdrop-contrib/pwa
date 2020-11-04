@@ -15,7 +15,7 @@ function pwa_admin_configuration_manifest() {
   $form['manifest'] = [
     '#type' => 'fieldset',
     '#title' => 'manifest.json',
-    '#description' => t('The manifest file allows the website to be added to home screen as an app. <a href="@url" target="_blank" rel="noopener">See the W3C example</a>.', array('@url' => 'https://www.w3.org/TR/appmanifest/#example-manifest'))
+    '#description' => t('The manifest file allows the website to be added to home screen as an app. <a href="@url" target="_blank" rel="noopener">See the W3C example</a>.', array('@url' => 'https://www.w3.org/TR/appmanifest/#example-manifests'))
   ];
 
   $form['manifest']['pwa_short_name'] = [
