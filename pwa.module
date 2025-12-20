@@ -195,7 +195,7 @@ function _pwa_serviceworker_file() {
   $config = config('pwa.settings');
   $path = backdrop_get_path('module', 'pwa');
   $sw = file_get_contents($path . '/js/serviceworker.js');
-  $cacheUrls = (array) preg_split("/\r\n|\n|\r/", trim($config->get('pwa_sw_cache_urls')));
+  $cacheUrls = (array) preg_split("/\r\n|\n|\r/", trim($config->get('pwa_sw_cache_urls') ?? ''));
 
   // Get icons list and convert into array of sources.
   $manifest = _pwa_manifest_data();
@@ -227,7 +227,7 @@ function _pwa_serviceworker_file() {
 
   // Set up placeholders.
   $replace = [
-    '[/*cacheConditionsExclude*/]' => backdrop_json_encode((array) preg_split("/\r\n|\n|\r/", trim($config->get('pwa_sw_cache_exclude')))),
+    '[/*cacheConditionsExclude*/]' => backdrop_json_encode((array) preg_split("/\r\n|\n|\r/", trim($config->get('pwa_sw_cache_exclude') ?? ''))),
     '[/*cacheUrls*/]' => backdrop_json_encode($cacheWhitelist),
     '[/*cacheUrlsAssets*/]' => backdrop_json_encode((array) _pwa_fetch_offline_page_resources($cacheUrls)),
     '1/*cacheVersion*/' => '\'' . $pwa_module_version . '-v' . $config->get('pwa_sw_cache_version') . '\'',
@@ -261,7 +261,7 @@ function _pwa_fetch_offline_page_resources($pages) {
     
     $dom = new DOMDocument();
     
-    $dom->loadHTML($response->data ?? '');
+    @$dom->loadHTML($response->data ?? '');
 
     $xpath = new DOMXPath($dom);
     foreach ($xpath->query('//script[@src]') as $script) {
