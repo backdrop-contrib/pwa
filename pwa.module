@@ -256,9 +256,12 @@ function _pwa_fetch_offline_page_resources($pages) {
   // example would be an asynchronously-loaded webfont.
   foreach ($pages as $page) {
     $response = backdrop_http_request(url($page, ['absolute' => TRUE]));
-
+    if (!$response || !is_object($response) || !isset($response->data)) continue;  // Prevent empty responses from causing problems. 
+     
+    
     $dom = new DOMDocument();
-    @$dom->loadHTML($response->data);
+    
+    $dom->loadHTML($response->data ?? '');
 
     $xpath = new DOMXPath($dom);
     foreach ($xpath->query('//script[@src]') as $script) {
