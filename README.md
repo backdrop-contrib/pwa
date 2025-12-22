@@ -94,7 +94,9 @@ This project is GPL v2 or higher software. See the LICENSE.txt file in this dire
 Current Maintainers
 -------------------
 
-- Seeking maintainers.
+- [Richard Peacock](https://github.com/swampopus)
+- Seeking additional maintainers.
+
 
 Credits
 -------
