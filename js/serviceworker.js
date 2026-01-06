@@ -72,6 +72,9 @@ self.addEventListener('install', function (event) {
       .open(CACHE_CURRENT)
       .then(function (cache) {
         return Promise.all(CACHE_URLS.concat(CACHE_URLS_ASSETS).map(function (url) {
+          if (typeof url !== "string"){
+          return;
+         }
           // Instead of directly adding URLs to Cache API, reformat to include
           // the `no-cors` header to enable caching of third-party assets such
           // as hosted fonts, CDN libraries, etc.
@@ -82,20 +85,12 @@ self.addEventListener('install', function (event) {
             .catch(function (error) {
               logError(error);
 
-              // Uncommented Promise.resolve() will allow installation even when
-              // assets aren't successfully cached.
-              //
-              // @TODO: is this conservative enough for a module expected to work
-              //        without extensive configuration?
-              //
-              // @see https://www.drupal.org/project/pwa/issues/2986596
-              //
-              // return Promise.resolve();
             });
         }));
       }));
   }
 });
+
 
 /**
  * Once the Service Worker is installed, this event is fired to allow for
@@ -389,16 +384,16 @@ self.addEventListener('fetch', function (event) {
         event.respondWith(makeRequest.staleWhileRevalidateImage(event.request));
       }
     }
-
-    // Other resources: network with cache fallback.
-    else {
-      event.respondWith(makeRequest.networkWithCacheFallback(event.request));
-    }
   }
   else {
-    console.debug('PWA: Excluded URL', event.request.url);
+    if (isMethodGet && includedProtocol) {
+      event.respondWith(makeRequest.networkWithCacheFallback(event.request));
+    }
+    // console.debug('PWA: Excluded URL', event.request.url);
+
   }
 });
+
 
 
 /**

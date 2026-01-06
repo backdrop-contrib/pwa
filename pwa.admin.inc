@@ -46,7 +46,7 @@ function pwa_admin_configuration_manifest() {
   $form['manifest']['pwa_background_color'] = [
     '#type' => 'textfield',
     '#title' => t('Background color'),
-    '#description' => t('Color of the browser UI when launching from home screen.'),
+    '#description' => t('Color of the background splash page when launching from home screen.'),
     '#size' => 8,
     '#default_value' => $config->get('pwa_background_color'),
   ];
@@ -54,7 +54,7 @@ function pwa_admin_configuration_manifest() {
   $form['manifest']['pwa_theme_color'] = [
     '#type' => 'textfield',
     '#title' => t('Theme color'),
-    '#description' => t('Color of the background splash page when launching from home screen.'),
+    '#description' => t('Color of the browser UI when launching from home screen.'),
     '#size' => 8,
     '#default_value' => $config->get('pwa_theme_color'),
   ];
