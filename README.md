@@ -50,36 +50,31 @@ The main benefit of this module is the use of Service Worker for caching and off
 
 The module will also create a configurable `manifest.json` file to make the website installable on supporting mobile devices. Out of the box, the module fulfils enough PWA requirements that the "add to home screen" prompt is automatically triggered when a visitor returns often enough to your website. It provides a perfect PWA Lighthouse audit score by default as well.
 
-Server Requirements
--------------------
+SSL Requirement for Service Worker
+----------------------------------
 
-This Backdrop module requires **PHP 7.2 or greater**. We will continue to modify this minimum requirement to avoid supporting any EOL version of PHP. If you are using an older version it is recommended to urgently upgrade your version of PHP to avoid unpatched security vulnerabilities.
+Your web server **MUST support secure connections using HTTPS**. This is a requirement of the W3 specification. Only localhost will work using HTTP.
 
-Additionally, your web server **MUST support secure connections using HTTPS**. This is a requirement of the W3 specification and is not a choice made by the module maintainers.
 
-Browser support
----------------
+Browser support for PWA and Service Worker
+------------------------------------------
 
-As of May 2018 there is wide cross-browser support! See current status at the following canonical resources:
+There is very wide browser support! See current status at the following canonical resources:
 
 - [Is Service Worker Ready?](https://jakearchibald.github.io/isserviceworkerready/) - browser support grouped by dependencies.
 - [caniuse.com/#feat=serviceworkers](https://caniuse.com/#feat=serviceworkers) - historical support grouped by browser version.
 
-A brief list of browsers that support Service Worker and Manifest:
+Most web updated browsers (released within the last 5 years) will support PWA and Service Worker, including:
 
 - Chrome/Opera
 - Firefox
-- Edge 17+
-- Safari macOS 11.1 / iOS 11.3+
-- UC Browser 11.8+
-- Samsung Internet 4+
+- Edge
+- Safari
+- UC Browser
+- Samsung Internet
 
 Service Worker is a progressive enhancement, so browsers without support will behave exactly as normal websites. However, it will make things significantly faster, more network-resilient, and offer an offline branding opportunity in browsers that have support.
 
-Related specifications
-----------------------
-
-The Cache API used by PWA is a [new cache defined by the Service Worker spec](https://developer.mozilla.org/en-US/docs/Web/API/Cache).
 
 Troubleshooting
 ---------------
@@ -90,6 +85,11 @@ Sometimes there are problems on a site which are caused by the PWA module's Serv
 - Chrome DevTools > Application > Service Workers: if you have an old Service Worker which you want to permanently remove, click Unregister and close all tabs under the domain which hosts the Service Worker. You cannot just close one tab; it must be all tabs for that website.
 - Chrome DevTools > Application > Clear storage: if bypassing is not working, try deleting the Service Worker and the associated caches entirely by using the built-in options in devtools. Clicking "clear site data" is immediate and you don't need to close all tabs for it to take effect.
 
+
+Related specifications
+----------------------
+
+The Cache API used by PWA is a [cache defined by the Service Worker spec](https://developer.mozilla.org/en-US/docs/Web/API/Cache).
 
 
 License
