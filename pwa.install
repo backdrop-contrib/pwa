@@ -49,9 +49,16 @@ function pwa_install() {
   $directory = file_default_scheme() . '://pwa';
   file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
 
+  // So that we do not add duplicate /'s to the "URLs to cache on install" form, let's simply clear
+  // this value before setting it into our config, if it is already '/'.
+  $start_url = config_get('pwa.settings', 'pwa_start_url');
+  if ($start_url == '/') {
+    $start_url = '';
+  }
+
   $config = config('pwa.settings');
   $config->set('pwa_sw_cache_exclude', implode("\n", PWA_SW_CACHE_EXCLUDE));
-  $config->set('pwa_sw_cache_urls', implode("\n", ['/', '/offline', config_get('pwa.settings', 'pwa_start_url')]));
+  $config->set('pwa_sw_cache_urls', trim(implode("\n", ['/', '/offline', $start_url])));
   $config->set('name', config_get('system.core', 'site_name'));
   $config->set('short_name', config_get('system.core', 'site_name'));
   $config->save();
