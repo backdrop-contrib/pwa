@@ -257,6 +257,13 @@ function _pwa_fetch_offline_page_resources($pages) {
   foreach ($pages as $page) {
     $response = backdrop_http_request(url($page, ['absolute' => TRUE]));
 
+	if (!$response || !is_object($response) || !isset($response->data) || trim($response->data ?? '') == '') {
+		// If the response is empty or invalid in some way, this will cause the $dom->loadHTML() below to create
+		// a fatal ValueError.  This can happen on the module's install if your site is not at the 
+		// root of a domain, but is instead within a folder.  Ex:  https://localhost/dev/backdrop_site_1/		
+		continue;  
+	}
+
     $dom = new DOMDocument();
     @$dom->loadHTML($response->data);
 
