@@ -54,7 +54,7 @@ function pwa_menu() {
   $items['admin/config/system/pwa/manifest'] = [
     'title' => t('Add to Homescreen'),
     'description' => 'Control how your website appears on mobile devices when used as a PWA.',
-    'page callback' => 'drupal_get_form',
+    'page callback' => 'backdrop_get_form',
     'page arguments' => ['pwa_admin_configuration_manifest'],
     'access arguments' => ['administer pwa'],
     'file' => 'pwa.admin.inc',
@@ -65,7 +65,7 @@ function pwa_menu() {
   $items['admin/config/system/pwa/serviceworker'] = [
     'title' => 'Service Worker',
     'description' => 'Technical configuration for PWA Service Worker.',
-    'page callback' => 'drupal_get_form',
+    'page callback' => 'backdrop_get_form',
     'page arguments' => ['pwa_admin_configuration_sw'],
     'access arguments' => ['administer pwa'],
     'file' => 'pwa.admin.inc',
@@ -76,7 +76,7 @@ function pwa_menu() {
   $items['admin/config/system/pwa'] = [
     'title' => t('Progressive Web App'),
     'description' => 'Control how your website appears on mobile devices when used as a PWA.',
-    'page callback' => 'drupal_get_form',
+    'page callback' => 'backdrop_get_form',
     'page arguments' => ['pwa_admin_configuration_manifest'],
     'access arguments' => ['administer pwa'],
     'file' => 'pwa.admin.inc',
