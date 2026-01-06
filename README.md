@@ -81,10 +81,16 @@ Related specifications
 
 The Cache API used by PWA is a [new cache defined by the Service Worker spec](https://developer.mozilla.org/en-US/docs/Web/API/Cache).
 
-Help! Something is broken!
---------------------------
+Troubleshooting
+---------------
 
-Do not fear, there are temporary workarounds when the Service Worker causes some trouble. Often you will just need to access the Backdrop admin in order to disable to module. For that, you can follow the official [Troubleshooting guide](https://www.drupal.org/docs/7/modules/progressive-web-app-pwa/troubleshooting).
+Sometimes there are problems on a site which are caused by the PWA module's Service Worker, or made more complicated by its presence. In these cases it's best to temporarily disable the Service Worker within your web browser so the Backdrop admin is once again accessible, or login links function as expected. Use one of these options to disable the Service Worker in your browser:
+
+- Chrome DevTools > Application > Service Workers: after navigating through the devtools screens, click Bypass for network. Afterwards, you should be able to browse without the interference of the SW, for example to use a one-time login link like you get from running drush uli or similar.
+- Chrome DevTools > Application > Service Workers: if you have an old Service Worker which you want to permanently remove, click Unregister and close all tabs under the domain which hosts the Service Worker. You cannot just close one tab; it must be all tabs for that website.
+- Chrome DevTools > Application > Clear storage: if bypassing is not working, try deleting the Service Worker and the associated caches entirely by using the built-in options in devtools. Clicking "clear site data" is immediate and you don't need to close all tabs for it to take effect.
+
+
 
 License
 -------
