@@ -428,9 +428,10 @@ function phoneHome() {
       console.debug('PWA: Phone-home - Network detected, module detected.');
     }
 
-    // if network + 404, uninstall
-    if (response.status === 404) {
-      console.debug('PWA: Phone-home - Network detected, module NOT detected. UNINSTALLING.');
+    // if network + 404 (module disabled) or 403 (the 'access pwa' permission
+    // was removed), uninstall.
+    if (response.status === 404 || response.status === 403) {
+      console.debug('PWA: Phone-home - Network detected, module NOT detected or access removed. UNINSTALLING.');
 
       // Let SW attempt to unregister itself.
       Promise.resolve(pwaUninstallServiceWorker());

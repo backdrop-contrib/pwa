@@ -94,6 +94,7 @@ function pwa_config_info() {
     'label' => t('Progressive Web App settings'),
     'group' => t('Configuration'),
   );
+  return $prefixes;
 }
 
 /**
@@ -297,7 +298,9 @@ function pwa_preprocess_page(&$variables) {
     '#tag' => 'link',
     '#attributes' => [
       'rel' => 'manifest',
-      'href' => $config->get('pwa_filecache_manifest'),
+      // Build the URL for this request rather than using the stored value,
+      // which is wrong when caches were flushed from the command line.
+      'href' => file_create_url(file_default_scheme() . '://pwa/manifest.json'),
     ],
   ], 'manifest');
 
