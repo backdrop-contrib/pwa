@@ -101,7 +101,8 @@ Current Maintainers
 -------------------
 
 - [Richard Peacock](https://github.com/swampopus)
-- Seeking additional maintainers.
+- [Steve Moorhouse (albanycomputers)](https://github.com/albanycomputers)
+- Additional maintainers welcomed.
 
 
 Credits
