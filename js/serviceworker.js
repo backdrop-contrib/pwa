@@ -78,8 +78,13 @@ self.addEventListener('install', function (event) {
           // Instead of directly adding URLs to Cache API, reformat to include
           // the `no-cors` header to enable caching of third-party assets such
           // as hosted fonts, CDN libraries, etc.
-          return fetch(url, { credentials: 'same-origin', mode: 'no-cors' })
+          // Precache anonymously ('omit'), so that pages cached here never
+          // hold the installing user's personal or administrative content.
+          return fetch(url, { credentials: 'omit', mode: 'no-cors' })
             .then(function (response) {
+              if (isNoStore(response)) {
+                return;
+              }
               return cache.put(url, response);
             })
             .catch(function (error) {
@@ -206,6 +211,19 @@ function isCacheableAsset(assetUrl) {
 }
 
 /**
+ * Test if Backdrop marked a response as not cacheable.
+ *
+ * The PWA module sends this header on every page for logged-in users.
+ *
+ * @param {Response} response
+ *
+ * @return {boolean}
+ */
+function isNoStore(response) {
+  return !!response && !!response.headers && response.headers.get('X-PWA-Cache') === 'no-store';
+}
+
+/**
  * Helper for Assets files.
  *
  * @param {URL} assetUrl
@@ -276,6 +294,12 @@ self.addEventListener('fetch', function (event) {
    * @return {Promise}
    */
   function cacheNetworkResponse(response) {
+    // Never cache responses that Backdrop marks as private (pages for
+    // logged-in users).
+    if (isNoStore(response)) {
+      return response;
+    }
+
     // Don't cache redirects or errors.
     if (response.ok) {
       // Copy now and not in the then() because by that time it's too late,
@@ -367,31 +391,45 @@ self.addEventListener('fetch', function (event) {
     }
   };
 
-  // Make sure the URL is one we don't exclude from cache.
-  if (isMethodGet && includedProtocol && notExcludedPath) {
-    // If it's an asset: Stale-While-Revalidate.
-    if (isCacheableAsset(url)) {
-      event.respondWith(makeRequest.staleWhileRevalidate(event.request));
-    }
+  // Only GET requests over http(s) are handled; everything else goes to the
+  // network untouched.
+  if (!isMethodGet || !includedProtocol) {
+    return;
+  }
 
-    // Check for save-data Header and avoid caching when present.
-    else if (isImageUrl(url)) {
-      if (event.request.headers.get('save-data')) {
-        console.debug('PWA: refusing to cache image due to save-data header.');
-        event.respondWith(makeRequest.networkWithOfflineImageFallback(event.request));
-      }
-      else {
-        event.respondWith(makeRequest.staleWhileRevalidateImage(event.request));
-      }
+  var isNavigation = event.request.mode === 'navigate';
+
+  // Excluded URLs are never cached. Pages still fall back to the offline page
+  // when there is no connection.
+  if (!notExcludedPath) {
+    if (isNavigation) {
+      event.respondWith(fetch(event.request).catch(catchOffline));
+    }
+    return;
+  }
+
+  // Pages: network first, falling back to the cache, then the offline page.
+  if (isNavigation) {
+    event.respondWith(makeRequest.networkWithCacheFallback(event.request));
+  }
+
+  // If it's an asset: Stale-While-Revalidate.
+  else if (isCacheableAsset(url)) {
+    event.respondWith(makeRequest.staleWhileRevalidate(event.request));
+  }
+
+  // Check for save-data Header and avoid caching when present.
+  else if (isImageUrl(url)) {
+    if (event.request.headers.get('save-data')) {
+      console.debug('PWA: refusing to cache image due to save-data header.');
+      event.respondWith(makeRequest.networkWithOfflineImageFallback(event.request));
+    }
+    else {
+      event.respondWith(makeRequest.staleWhileRevalidateImage(event.request));
     }
   }
-  else {
-    if (isMethodGet && includedProtocol) {
-      event.respondWith(makeRequest.networkWithCacheFallback(event.request));
-    }
-    // console.debug('PWA: Excluded URL', event.request.url);
 
-  }
+  // Anything else (AJAX, JSON, etc.) goes to the network untouched.
 });
 
 

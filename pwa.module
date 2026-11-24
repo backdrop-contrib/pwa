@@ -8,6 +8,35 @@ define('PWA_SW_CACHE_EXCLUDE', ['admin/.*', 'user/reset/.*']);
 define('PWA_SW_REGISTRATION_EVENT_DEFAULT', 'windowonload');
 
 /**
+ * Response header that tells the Service Worker not to cache a response.
+ */
+define('PWA_NO_CACHE_HEADER', 'X-PWA-Cache');
+
+/**
+ * Implements hook_init().
+ *
+ * Pages for logged-in users can hold personal or administrative content, so
+ * mark them as not cacheable by the Service Worker.
+ */
+function pwa_init() {
+  if (user_is_logged_in()) {
+    backdrop_add_http_header(PWA_NO_CACHE_HEADER, 'no-store');
+  }
+}
+
+/**
+ * Implements hook_user_logout().
+ *
+ * Remove the Service Worker and its caches from the browser when a user logs
+ * out, so the next person using the device cannot see cached pages.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Clear-Site-Data
+ */
+function pwa_user_logout($account) {
+  backdrop_add_http_header('Clear-Site-Data', '"storage"');
+}
+
+/**
  * Implements hook_permission().
  */
 function pwa_permission() {
@@ -97,9 +126,9 @@ function pwa_config_info() {
 }
 
 /**
- * Implements hook_library().
+ * Implements hook_library_info().
  */
-function pwa_library() {
+function pwa_library_info() {
   $path = backdrop_get_path('module', 'pwa');
   return [
     'serviceworker' => [
