@@ -1,23 +1,42 @@
 <?php
 /**
  * @file
+ * Progressive Web App: manifest, service worker and offline support.
  */
 
-define('PWA_MODULE_ACTIVE_ROUTE', 'pwa/module-active');
-define('PWA_SW_CACHE_EXCLUDE', ['admin/.*', 'user/reset/.*']);
-define('PWA_SW_REGISTRATION_EVENT_DEFAULT', 'windowonload');
+/**
+ * Response header that tells the service worker not to cache a response.
+ */
+define('PWA_NO_CACHE_HEADER', 'X-PWA-Cache');
+
+/**
+ * Caching strategies the service worker understands.
+ */
+define('PWA_SW_STRATEGIES', [
+  'CacheFirst',
+  'CacheOnly',
+  'NetworkFirst',
+  'NetworkOnly',
+  'StaleWhileRevalidate',
+]);
 
 /**
  * Implements hook_permission().
  */
 function pwa_permission() {
   return [
-    'administer pwa' => [
-      'title' => t('Administer Progressive Web App configuration'),
-      'restrict access' => TRUE,
-    ],
     'access pwa' => [
       'title' => t('Access Progressive Web App'),
+      'description' => t('Install the service worker and use the site offline.'),
+    ],
+    'administer pwa manifest' => [
+      'title' => t('Administer Progressive Web App manifest'),
+      'description' => t('Set the app name, colours and start page.'),
+    ],
+    'administer pwa serviceworker' => [
+      'title' => t('Administer Progressive Web App service worker'),
+      'description' => t('Set what the service worker caches and how.'),
+      'restrict access' => TRUE,
     ],
   ];
 }
@@ -29,58 +48,81 @@ function pwa_menu() {
   $items = [];
 
   $items['pwa/serviceworker/js'] = [
-    'page callback' => 'pwa_serviceworker_file_data',
+    'page callback' => 'pwa_file_data',
+    'page arguments' => ['serviceworker'],
     'access arguments' => ['access pwa'],
-    'delivery callback' => 'pwa_deliver_js_file',
+    'delivery callback' => 'pwa_deliver_serviceworker_file',
+    'file' => 'pwa.pages.inc',
+    'type' => MENU_CALLBACK,
+  ];
+
+  // Checked by the service worker to see if it should remove itself.
+  $items['pwa/serviceworker/check'] = [
+    'page callback' => 'pwa_module_active',
+    'access arguments' => ['access pwa'],
+    'delivery callback' => 'pwa_deliver_json',
+    'file' => 'pwa.pages.inc',
+    'type' => MENU_CALLBACK,
+  ];
+
+  // The manifest is public: browsers fetch it without credentials.
+  $items['manifest.webmanifest'] = [
+    'page callback' => 'pwa_file_data',
+    'page arguments' => ['manifest'],
+    'access callback' => TRUE,
+    'delivery callback' => 'pwa_deliver_manifest_file',
     'file' => 'pwa.pages.inc',
     'type' => MENU_CALLBACK,
   ];
 
   $items['offline'] = [
+    'title' => 'Offline',
     'page callback' => 'pwa_offline_page',
     'access arguments' => ['access pwa'],
     'file' => 'pwa.pages.inc',
     'type' => MENU_CALLBACK,
   ];
 
-  $items[PWA_MODULE_ACTIVE_ROUTE] = [
-    'page callback' => 'pwa_module_active',
-    'access arguments' => ['access pwa'],
-    'file' => 'pwa.pages.inc',
-    'type' => MENU_CALLBACK,
-  ];
-
-  // Admin settings for manifest.json
-  $items['admin/config/system/pwa/manifest'] = [
-    'title' => t('Add to Homescreen'),
-    'description' => 'Control how your website appears on mobile devices when used as a PWA.',
-    'page callback' => 'backdrop_get_form',
-    'page arguments' => ['pwa_admin_configuration_manifest'],
-    'access arguments' => ['administer pwa'],
-    'file' => 'pwa.admin.inc',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-  ];
-
-  // Admin settings to control how SW is loaded and cached.
-  $items['admin/config/system/pwa/serviceworker'] = [
-    'title' => 'Service Worker',
-    'description' => 'Technical configuration for PWA Service Worker.',
-    'page callback' => 'backdrop_get_form',
-    'page arguments' => ['pwa_admin_configuration_sw'],
-    'access arguments' => ['administer pwa'],
-    'file' => 'pwa.admin.inc',
-    'type' => MENU_LOCAL_TASK,
-  ];
-
-  // Specify manifest settings as default landing page when using system nav.
   $items['admin/config/system/pwa'] = [
-    'title' => t('Progressive Web App'),
+    'title' => 'Progressive Web App',
     'description' => 'Control how your website appears on mobile devices when used as a PWA.',
     'page callback' => 'backdrop_get_form',
     'page arguments' => ['pwa_admin_configuration_manifest'],
-    'access arguments' => ['administer pwa'],
+    'access arguments' => ['administer pwa manifest'],
     'file' => 'pwa.admin.inc',
     'type' => MENU_NORMAL_ITEM,
+  ];
+  $items['admin/config/system/pwa/manifest'] = [
+    'title' => 'Manifest',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  ];
+  $items['admin/config/system/pwa/serviceworker'] = [
+    'title' => 'Service worker',
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => ['pwa_admin_configuration_sw'],
+    'access arguments' => ['administer pwa serviceworker'],
+    'file' => 'pwa.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 0,
+  ];
+  $items['admin/config/system/pwa/cache'] = [
+    'title' => 'Caching',
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => ['pwa_admin_configuration_sw_patterns'],
+    'access arguments' => ['administer pwa serviceworker'],
+    'file' => 'pwa.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 5,
+  ];
+  $items['admin/config/system/pwa/precache'] = [
+    'title' => 'Precaching',
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => ['pwa_admin_configuration_sw_precache'],
+    'access arguments' => ['administer pwa serviceworker'],
+    'file' => 'pwa.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 10,
   ];
 
   return $items;
@@ -90,82 +132,157 @@ function pwa_menu() {
  * Implements hook_config_info().
  */
 function pwa_config_info() {
-  $prefixes['pwa.settings'] = array(
+  $prefixes['pwa.settings'] = [
     'label' => t('Progressive Web App settings'),
     'group' => t('Configuration'),
-  );
+  ];
+  return $prefixes;
 }
 
 /**
- * Implements hook_library().
+ * Implements hook_init().
+ *
+ * Pages for logged-in users can hold personal or administrative content, and
+ * pages for anonymous visitors with session data can hold a cart, checkout
+ * details or status messages. Mark both as not cacheable by the service
+ * worker.
+ *
+ * This is the same test core uses to turn off the page cache (see
+ * backdrop_session_initialize()). A session cookie with an empty session is
+ * not enough: core still page-caches that response, header included, and
+ * serves it to every visitor.
  */
-function pwa_library() {
+function pwa_init() {
+  if (user_is_logged_in() || !empty($_SESSION)) {
+    backdrop_add_http_header(PWA_NO_CACHE_HEADER, 'no-store');
+  }
+}
+
+/**
+ * Implements hook_user_login().
+ *
+ * Remove the service worker and its caches so that nothing cached while
+ * anonymous is shown to the logged-in user. It is installed again on the
+ * next page.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Clear-Site-Data
+ */
+function pwa_user_login(&$edit, $account) {
+  backdrop_add_http_header('Clear-Site-Data', '"storage"');
+}
+
+/**
+ * Implements hook_user_logout().
+ *
+ * Remove the service worker and its caches, so the next person using the
+ * device cannot see cached pages.
+ */
+function pwa_user_logout($account) {
+  backdrop_add_http_header('Clear-Site-Data', '"storage"');
+}
+
+/**
+ * Return a version string for cache busting.
+ *
+ * @return string
+ *   The module version, with the file time appended for dev versions, and
+ *   the cache version set in the admin UI.
+ */
+function pwa_version() {
+  $info = system_get_info('module', 'pwa');
+  $version = !empty($info['version']) ? $info['version'] : 'dev';
+  if (strpos($version, 'dev') !== FALSE) {
+    $version .= '-' . filemtime(backdrop_get_path('module', 'pwa') . '/pwa.module');
+  }
+  return $version . '-v' . (int) config_get('pwa.settings', 'pwa_sw_cache_version');
+}
+
+/**
+ * Implements hook_library_info().
+ */
+function pwa_library_info() {
   $path = backdrop_get_path('module', 'pwa');
   return [
-    'serviceworker' => [
-      'version' => '0.2',
+    'register' => [
+      'title' => 'PWA service worker registration',
+      'version' => pwa_version(),
       'js' => [
-        $path . '/js/serviceworker-load.js' => ['scope' => 'footer'],
-        0 => [
-          'data' => ['pwa' => [
-            'path' => url('/pwa/serviceworker/js'),
-            'registrationEvent' => config_get('pwa.settings', 'pwa_sw_registration_event'),
-          ]],
-          'type' => 'setting',
-        ],
+        $path . '/js/register.js' => ['scope' => 'footer'],
+        $path . '/js/autoreload.js' => ['scope' => 'footer'],
       ],
-      'dependencies' => [
-        // Backdrop.settings.
-      ]
-    ]
+    ],
   ];
 }
 
 /**
- * Generate the for the manifest file.
+ * Return the manifest or service worker, from cache when possible.
+ *
+ * @param string $file
+ *   Either 'manifest' or 'serviceworker'.
+ *
+ * @return array|string|false
+ *   The manifest array, the service worker JS, or FALSE.
+ */
+function pwa_file_data($file) {
+  if (!in_array($file, ['manifest', 'serviceworker'], TRUE)) {
+    return FALSE;
+  }
+  global $language;
+  $cid = 'pwa:' . $file . ':' . $language->langcode;
+  if ($cache = cache_get($cid)) {
+    return $cache->data;
+  }
+  $function = '_pwa_' . $file . '_file';
+  $data = $function();
+  cache_set($cid, $data);
+  return $data;
+}
+
+/**
+ * Build the manifest.
  *
  * @return array
+ *   The manifest, ready to be JSON-encoded.
  */
-function _pwa_manifest_data() {
+function _pwa_manifest_file() {
   $config = config('pwa.settings');
   $path = backdrop_get_path('module', 'pwa');
+  $site_name = config_get('system.core', 'site_name');
   global $language;
 
   $manifest = [
-    'name' => $config->get('pwa_name'),
-    'short_name' => $config->get('pwa_short_name'),
+    'name' => $config->get('pwa_name') ?: $site_name,
+    'short_name' => $config->get('pwa_short_name') ?: $site_name,
     'description' => $config->get('pwa_description'),
     'lang' => $language->langcode,
-    'dir' => $language->direction == LANGUAGE_LTR ? 'ltr' : 'rtl',
+    'dir' => $language->direction == LANGUAGE_RTL ? 'rtl' : 'ltr',
     'background_color' => $config->get('pwa_background_color'),
     'theme_color' => $config->get('pwa_theme_color'),
-    'start_url' => $config->get('pwa_start_url'),
+    'start_url' => url(ltrim($config->get('pwa_start_url'), '/')),
+    'scope' => base_path(),
     'orientation' => $config->get('pwa_orientation'),
     'display' => $config->get('pwa_display'),
 
-    // Custom icons have to be defined in hook_pwa_manifest_alter().
-    //
-    // @see https://www.drupal.org/project/pwa/issues/2983031
+    // Custom icons are set with hook_pwa_manifest_alter().
     // @see pwa.api.php
     'icons' => [
       [
-        'src' => url($path . '/assets/backdrop-512.png'),
-        'sizes' => '512x512',
-        'type' => 'image/png',
-      ],
-      [
-        'src' => url($path . '/assets/backdrop-192.png'),
+        'src' => file_create_url($path . '/assets/backdrop-192.png'),
         'sizes' => '192x192',
         'type' => 'image/png',
+        'purpose' => 'any',
       ],
       [
-        'src' => url($path . '/assets/backdrop-144.png'),
-        'sizes' => '144x144',
+        'src' => file_create_url($path . '/assets/backdrop-512.png'),
+        'sizes' => '512x512',
         'type' => 'image/png',
+        'purpose' => 'any',
       ],
       [
-        'src' => url($path . '/assets/backdrop-vector.svg'),
+        'src' => file_create_url($path . '/assets/backdrop-vector.svg'),
+        'sizes' => 'any',
         'type' => 'image/svg+xml',
+        'purpose' => 'any',
       ],
     ],
   ];
@@ -176,169 +293,172 @@ function _pwa_manifest_data() {
 }
 
 /**
- * Generate JSON of the manifest data. This is the final file used by browsers.
+ * Build the service worker from its template.
  *
  * @return string
- */
-function _pwa_manifest_file() {
-  $manifest = _pwa_manifest_data();
-
-  return backdrop_json_encode($manifest);
-}
-
-/**
- * Take the serviceworker template file and replace all the variables needed.
- *
- * @return string
+ *   The service worker JavaScript.
  */
 function _pwa_serviceworker_file() {
   $config = config('pwa.settings');
   $path = backdrop_get_path('module', 'pwa');
-  $sw = file_get_contents($path . '/js/serviceworker.js');
-  $cacheUrls = (array) preg_split("/\r\n|\n|\r/", trim($config->get('pwa_sw_cache_urls')));
+  $version = pwa_version();
 
-  // Get icons list and convert into array of sources.
-  $manifest = _pwa_manifest_data();
-  $cacheIcons = [];
-  foreach ($manifest['icons'] as $icon) {
-    $cacheIcons[] = $icon['src'];
+  $offline_page = url('offline');
+  $offline_image = file_create_url($path . '/assets/offline-image.png');
+  $start_url = url(ltrim($config->get('pwa_start_url'), '/'));
+
+  $precache_page = array_map('_pwa_internal_url', _pwa_config_lines('pwa_sw_precache_page'));
+  $precache_page[] = $start_url;
+  $precache_page[] = $offline_page;
+  $precache_asset = array_map('_pwa_internal_url', _pwa_config_lines('pwa_sw_precache_asset'));
+  $precache_asset[] = $offline_image;
+
+  $assets = [];
+  foreach ((array) $config->get('pwa_sw_asset_config') as $type => $settings) {
+    $assets[$type] = [
+      'strategy' => (string) $settings['strategy'],
+      'limitMaxSize' => (bool) $settings['limitMaxSize'],
+      'maxSize' => (int) $settings['maxSize'],
+      'external' => (bool) $settings['external'],
+    ];
   }
 
-  // Combine URLs from admin UI with manifest icons.
-  $cacheWhitelist = array_merge($cacheUrls, $cacheIcons);
-
-  // Turn all the paths into fully-qualified URLs.
-  foreach ($cacheWhitelist as &$url) {
-    $url = url($url);
-  }
-  foreach ($cacheUrls as &$url) {
-    $url = url($url);
+  $patterns = [];
+  foreach (_pwa_config_lines('pwa_sw_patterns_page') as $line) {
+    list($strategy, $pattern) = array_map('trim', explode('|', $line, 2)) + [1 => ''];
+    if (in_array($strategy, PWA_SW_STRATEGIES, TRUE) && $pattern !== '') {
+      $patterns[] = ['strategy' => $strategy, 'value' => $pattern];
+    }
   }
 
-  // Look up module release from package info.
-  $pwa_module_info = system_get_info('module', 'pwa');
-  $pwa_module_version = $pwa_module_info['version'];
-
-  // Packaging script will always provide the published module version. Checking
-  // for NULL is only so maintainers have something predictable to test against.
-  if ($pwa_module_version == null) {
-    $pwa_module_version = '1.x-1.x-dev';
-  }
-
-  // Set up placeholders.
-  $replace = [
-    '[/*cacheConditionsExclude*/]' => backdrop_json_encode((array) preg_split("/\r\n|\n|\r/", trim($config->get('pwa_sw_cache_exclude')))),
-    '[/*cacheUrls*/]' => backdrop_json_encode($cacheWhitelist),
-    '[/*cacheUrlsAssets*/]' => backdrop_json_encode((array) _pwa_fetch_offline_page_resources($cacheUrls)),
-    '1/*cacheVersion*/' => '\'' . $pwa_module_version . '-v' . $config->get('pwa_sw_cache_version') . '\'',
-    '/offline' => url('/offline'),
-    'offline-image.png' => file_create_url(backdrop_get_path('module', 'pwa') . '/assets/offline-image.png'),
+  $settings = [
+    'version' => $version,
+    'debug' => (bool) $config->get('pwa_sw_debug'),
+    'basePath' => base_path(),
+    'noCacheHeader' => PWA_NO_CACHE_HEADER,
+    'cache' => [
+      'exclude' => _pwa_config_lines('pwa_sw_cache_exclude'),
+      'precache' => [
+        'page' => array_values(array_unique($precache_page)),
+        'asset' => array_values(array_unique($precache_asset)),
+      ],
+      'patterns' => ['page' => $patterns],
+      'assets' => $assets,
+      'offline' => [
+        'page' => $offline_page,
+        'image' => $offline_image,
+      ],
+    ],
   ];
+  if ($config->get('pwa_sw_phonehome')) {
+    $settings['phonehome'] = [
+      'url' => url('pwa/serviceworker/check'),
+      // Check again after this many seconds without a request.
+      'idle' => 10 * 60,
+      // Check again after this many page loads.
+      'count' => 10,
+    ];
+  }
+  backdrop_alter('pwa_serviceworker_data', $settings);
 
-  // Fill placeholders and return final file.
-  return str_replace(array_keys($replace), array_values($replace), $sw);
+  // Scripts the service worker imports, in order.
+  $scripts = [
+    'utils' => $path . '/js/serviceworker/utils.js',
+    'phonehome' => $config->get('pwa_sw_phonehome') ? $path . '/js/serviceworker/phonehome.js' : NULL,
+    'workbox-core' => $path . '/js/workbox/workbox-core.prod.js',
+    'workbox-routing' => $path . '/js/workbox/workbox-routing.prod.js',
+    'workbox-strategies' => $path . '/js/workbox/workbox-strategies.prod.js',
+    'workbox-expiration' => $path . '/js/workbox/workbox-expiration.prod.js',
+    'cache' => $path . '/js/serviceworker/cache.js',
+  ];
+  backdrop_alter('pwa_serviceworker_script', $scripts);
+  $import = [];
+  foreach (array_filter($scripts) as $script) {
+    $url = url($script, ['query' => ['v' => $version], 'absolute' => TRUE]);
+    $import[] = 'importScripts(' . backdrop_json_encode($url) . ');';
+  }
+
+  $flags = JSON_PRETTY_PRINT | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES;
+  $replace = [
+    '{/*pwaSettings*/}' => json_encode($settings, $flags),
+    '/*importScripts*/' => implode("\n", $import),
+  ];
+  $template = file_get_contents($path . '/js/serviceworker/_template.js');
+  return str_replace(array_keys($replace), array_values($replace), $template);
 }
 
 /**
- * Discover CSS/JS assets present in offline URLs so they can be cached during
- * the Service Worker install event.
+ * Split a multi-line setting into trimmed, non-empty lines.
  *
- * @param $pages
+ * @param string $key
+ *   The pwa.settings key.
  *
- * @return array
+ * @return string[]
+ *   The lines.
  */
-function _pwa_fetch_offline_page_resources($pages) {
-  $resources = [];
+function _pwa_config_lines($key) {
+  $value = (string) config_get('pwa.settings', $key);
+  $lines = array_map('trim', preg_split("/\r\n|\n|\r/", $value));
+  return array_values(array_filter($lines, 'strlen'));
+}
 
-  // For each Backdrop path, request the HTML response and parse any CSS/JS
-  // found within the HTML. Since this is the pure HTML response, any DOM
-  // modifications that trigger new requests cannot be accounted for. An
-  // example would be an asynchronously-loaded webfont.
-  foreach ($pages as $page) {
-    $response = backdrop_http_request(url($page, ['absolute' => TRUE]));
-
-	if (!$response || !is_object($response) || !isset($response->data) || trim($response->data ?? '') == '') {
-		// If the response is empty or invalid in some way, this will cause the $dom->loadHTML() below to create
-		// a fatal ValueError.  This can happen on the module's install if your site is not at the 
-		// root of a domain, but is instead within a folder.  Ex:  https://localhost/dev/backdrop_site_1/		
-		continue;  
-	}
-
-    $dom = new DOMDocument();
-    @$dom->loadHTML($response->data);
-
-    $xpath = new DOMXPath($dom);
-    foreach ($xpath->query('//script[@src]') as $script) {
-      $resources[] = $script->getAttribute('src');
-    }
-    foreach ($xpath->query('//link[@rel="stylesheet"][@href]') as $stylesheet) {
-      $resources[] = $stylesheet->getAttribute('href');
-    }
-    foreach ($xpath->query('//img[@src]') as $image) {
-      $resources[] = $image->getAttribute('src');
-    }
-  }
-
-  $dedupe = array_unique($resources);
-  return $dedupe;
+/**
+ * Turn a site-relative path from the settings into a URL for this site.
+ *
+ * @param string $path
+ *   A path such as '/about' or 'files/logo.png'.
+ *
+ * @return string
+ *   The URL, including the base path.
+ */
+function _pwa_internal_url($path) {
+  return url(ltrim($path, '/'));
 }
 
 /**
  * Implements hook_preprocess_page().
  */
 function pwa_preprocess_page(&$variables) {
-  $config = config('pwa.settings');
-  if (!user_access('access pwa')) {
-    return;
-  }
+  $manifest = pwa_file_data('manifest');
 
-  // Add manifest.json to HTML
+  $version = (int) config_get('pwa.settings', 'pwa_sw_cache_version');
   backdrop_add_html_head([
     '#tag' => 'link',
     '#attributes' => [
       'rel' => 'manifest',
-      'href' => $config->get('pwa_filecache_manifest'),
+      'href' => url('manifest.webmanifest', ['query' => ['v' => $version]]),
     ],
-  ], 'manifest');
+  ], 'pwa_manifest');
 
-  // Add backup <meta> tag for branding colors. It should always match the
-  // variable for the manifest.
+  // Fallback for browsers that read the colour from the page, not the
+  // manifest. It always matches the manifest.
   backdrop_add_html_head([
     '#tag' => 'meta',
     '#attributes' => [
       'name' => 'theme-color',
-      'content' => $config->get('pwa_theme_color'),
+      'content' => $manifest['theme_color'],
     ],
-  ], 'theme_color');
+  ], 'pwa_theme_color');
 
-  // Load the Service Worker
-  backdrop_add_library('pwa', 'serviceworker');
-  backdrop_add_js(['pwa' => ['path' => url('pwa/serviceworker/js')]], 'setting');
-}
+  // Apple devices use this instead of the manifest icons.
+  foreach ($manifest['icons'] as $icon) {
+    if (isset($icon['sizes']) && $icon['sizes'] === '192x192') {
+      backdrop_add_html_head([
+        '#tag' => 'link',
+        '#attributes' => [
+          'rel' => 'apple-touch-icon',
+          'href' => $icon['src'],
+        ],
+      ], 'pwa_apple_touch_icon');
+      break;
+    }
+  }
 
-/**
- * Implements hook_flush_caches().
- */
-function pwa_flush_caches() {
-  $scheme = file_default_scheme();
-  $directory =  $scheme . '://pwa';
-  file_prepare_directory($directory, FILE_CREATE_DIRECTORY);
-
-  // Create the static manifest file with all the data.
-  $manifest = _pwa_manifest_file();
-  $manifest_uri = file_unmanaged_save_data($manifest, $directory . '/manifest.json', FILE_EXISTS_REPLACE);
-  $manifest_url = file_create_url($manifest_uri);
-  config_set('pwa.settings', 'pwa_filecache_manifest', str_replace($GLOBALS['base_url'] . '/', base_path(), $manifest_url));
-
-  // Create the serviceworker file in cache so it can be served from a menu
-  // callback so additional headers can be sent with the file.
-  // @see pwa_deliver_js_file().
-  cache_set('pwa:serviceworker', _pwa_serviceworker_file(), 'cache');
-}
-
-/**
- * Implements hook_modernizr_info().
- */
-function pwa_modernizr_info() {
-  return ['serviceworker'];
+  if (user_access('access pwa')) {
+    backdrop_add_library('pwa', 'register');
+    backdrop_add_js(['pwa' => [
+      'path' => url('pwa/serviceworker/js'),
+      'scope' => base_path(),
+    ]], 'setting');
+  }
 }
