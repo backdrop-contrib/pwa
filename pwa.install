@@ -14,6 +14,7 @@ function pwa_requirements($phase) {
   }
 
   $t = get_t();
+  $local_hosts = ['localhost', '127.0.0.1'];
   if ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || (isset($_SERVER["REQUEST_SCHEME"]) && $_SERVER["REQUEST_SCHEME"] === 'https')) {
     $requirements['pwa'] = array(
       'title' => $t('Progressive Web App'),
@@ -22,7 +23,7 @@ function pwa_requirements($phase) {
       'description' => $t('Please make sure the certificate of %domain is valid for offline functionality to work.', ['%domain' => $_SERVER['HTTP_HOST']]),
     );
   }
-  elseif (in_array($_SERVER['HTTP_HOST'], ['localhost' => '127.0.0.1'])) {
+  elseif (in_array(preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST']), $local_hosts)) {
     $requirements['pwa'] = array(
       'title' => $t('Progressive Web App'),
       'value' => 'localhost',
@@ -46,7 +47,7 @@ function pwa_requirements($phase) {
  * Implements hook_install().
  */
 function pwa_install() {
-  $directory = file_default_scheme() . '://pwa';
+  $directory = 'public://pwa';
   file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
 
   // So that we do not add duplicate /'s to the "URLs to cache on install" form, let's simply clear
@@ -59,8 +60,8 @@ function pwa_install() {
   $config = config('pwa.settings');
   $config->set('pwa_sw_cache_exclude', implode("\n", PWA_SW_CACHE_EXCLUDE));
   $config->set('pwa_sw_cache_urls', trim(implode("\n", ['/', '/offline', $start_url])));
-  $config->set('name', config_get('system.core', 'site_name'));
-  $config->set('short_name', config_get('system.core', 'site_name'));
+  $config->set('pwa_name', config_get('system.core', 'site_name'));
+  $config->set('pwa_short_name', config_get('system.core', 'site_name'));
   $config->save();
   pwa_flush_caches();
 
@@ -76,7 +77,7 @@ function pwa_uninstall() {
   cache_clear_all('variables', 'cache_bootstrap');
 
   // Delete manifest.json
-  $scheme = file_default_scheme();
+  $scheme = 'public';
   $directory =  $scheme . '://pwa';
   $path = $directory . '/manifest.json';
   file_unmanaged_delete($path);
@@ -98,7 +99,11 @@ function pwa_update_1000() {
   $config->set('pwa_display', update_variable_get('pwa_display', 'standalone'));
   $config->set('pwa_icons', update_variable_get('pwa_icons', ''));
   $config->set('pwa_sw_registration_event', update_variable_get('pwa_sw_registration_event', PWA_SW_REGISTRATION_EVENT_DEFAULT));
-  $config->set('pwa_sw_cache_exclude', update_variable_get('pwa_sw_cache_exclude', PWA_SW_CACHE_EXCLUDE));
+  $cache_exclude = update_variable_get('pwa_sw_cache_exclude', PWA_SW_CACHE_EXCLUDE);
+  if (is_array($cache_exclude)) {
+    $cache_exclude = implode("\n", $cache_exclude);
+  }
+  $config->set('pwa_sw_cache_exclude', $cache_exclude);
   $config->set('pwa_sw_cache_urls', update_variable_get('pwa_sw_cache_urls', ''));
   $config->set('pwa_sw_cache_version', update_variable_get('pwa_sw_cache_version', '1'));
   $config->set('pwa_filecache_manifest', update_variable_get('pwa_filecache_manifest', ''));
@@ -117,4 +122,29 @@ function pwa_update_1000() {
   update_variable_del('pwa_sw_cache_urls');
   update_variable_del('pwa_sw_cache_version');
   update_variable_del('pwa_filecache_manifest');
+}
+
+/**
+ * Move the app names saved under the wrong keys at install, and fix the
+ * cache exclude list if it was saved as an array.
+ */
+function pwa_update_1001() {
+  $config = config('pwa.settings');
+
+  foreach (['name' => 'pwa_name', 'short_name' => 'pwa_short_name'] as $old => $new) {
+    $value = $config->get($old);
+    if ($value !== NULL) {
+      if ($config->get($new) === '' || $config->get($new) === NULL) {
+        $config->set($new, $value);
+      }
+      $config->clear($old);
+    }
+  }
+
+  $cache_exclude = $config->get('pwa_sw_cache_exclude');
+  if (is_array($cache_exclude)) {
+    $config->set('pwa_sw_cache_exclude', implode("\n", $cache_exclude));
+  }
+
+  $config->save();
 }

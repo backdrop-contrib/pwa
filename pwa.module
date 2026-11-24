@@ -94,6 +94,7 @@ function pwa_config_info() {
     'label' => t('Progressive Web App settings'),
     'group' => t('Configuration'),
   );
+  return $prefixes;
 }
 
 /**
@@ -230,7 +231,8 @@ function _pwa_serviceworker_file() {
     '[/*cacheConditionsExclude*/]' => backdrop_json_encode((array) preg_split("/\r\n|\n|\r/", trim($config->get('pwa_sw_cache_exclude')))),
     '[/*cacheUrls*/]' => backdrop_json_encode($cacheWhitelist),
     '[/*cacheUrlsAssets*/]' => backdrop_json_encode((array) _pwa_fetch_offline_page_resources($cacheUrls)),
-    '1/*cacheVersion*/' => '\'' . $pwa_module_version . '-v' . $config->get('pwa_sw_cache_version') . '\'',
+    // JSON-encode so that no setting can break out of the JS string.
+    '1/*cacheVersion*/' => backdrop_json_encode($pwa_module_version . '-v' . (int) $config->get('pwa_sw_cache_version')),
     '/offline' => url('/offline'),
     'offline-image.png' => file_create_url(backdrop_get_path('module', 'pwa') . '/assets/offline-image.png'),
   ];
@@ -297,7 +299,9 @@ function pwa_preprocess_page(&$variables) {
     '#tag' => 'link',
     '#attributes' => [
       'rel' => 'manifest',
-      'href' => $config->get('pwa_filecache_manifest'),
+      // Build the URL for this request rather than using the stored value,
+      // which is wrong when caches were flushed from the command line.
+      'href' => file_create_url('public://pwa/manifest.json'),
     ],
   ], 'manifest');
 
@@ -320,7 +324,7 @@ function pwa_preprocess_page(&$variables) {
  * Implements hook_flush_caches().
  */
 function pwa_flush_caches() {
-  $scheme = file_default_scheme();
+  $scheme = 'public';
   $directory =  $scheme . '://pwa';
   file_prepare_directory($directory, FILE_CREATE_DIRECTORY);
 
