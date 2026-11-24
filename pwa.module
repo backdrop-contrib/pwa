@@ -16,12 +16,17 @@ define('PWA_NO_CACHE_HEADER', 'X-PWA-Cache');
  * Implements hook_init().
  *
  * Pages for logged-in users can hold personal or administrative content, and
- * pages for anonymous visitors with a session can hold a cart, checkout
+ * pages for anonymous visitors with session data can hold a cart, checkout
  * details or status messages. Mark both as not cacheable by the Service
  * Worker.
+ *
+ * This is the same test core uses to turn off the page cache (see
+ * backdrop_session_initialize()). A session cookie with an empty session is
+ * not enough: core still page-caches that response, header included, and
+ * serves it to every visitor.
  */
 function pwa_init() {
-  if (user_is_logged_in() || backdrop_session_started()) {
+  if (user_is_logged_in() || !empty($_SESSION)) {
     backdrop_add_http_header(PWA_NO_CACHE_HEADER, 'no-store');
   }
 }
