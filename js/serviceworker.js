@@ -213,7 +213,8 @@ function isCacheableAsset(assetUrl) {
 /**
  * Test if Backdrop marked a response as not cacheable.
  *
- * The PWA module sends this header on every page for logged-in users.
+ * The PWA module sends this header on every page for logged-in users and for
+ * anonymous visitors with a session.
  *
  * @param {Response} response
  *
@@ -295,7 +296,7 @@ self.addEventListener('fetch', function (event) {
    */
   function cacheNetworkResponse(response) {
     // Never cache responses that Backdrop marks as private (pages for
-    // logged-in users).
+    // logged-in users and anonymous visitors with a session).
     if (isNoStore(response)) {
       return response;
     }

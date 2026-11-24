@@ -15,11 +15,13 @@ define('PWA_NO_CACHE_HEADER', 'X-PWA-Cache');
 /**
  * Implements hook_init().
  *
- * Pages for logged-in users can hold personal or administrative content, so
- * mark them as not cacheable by the Service Worker.
+ * Pages for logged-in users can hold personal or administrative content, and
+ * pages for anonymous visitors with a session can hold a cart, checkout
+ * details or status messages. Mark both as not cacheable by the Service
+ * Worker.
  */
 function pwa_init() {
-  if (user_is_logged_in()) {
+  if (user_is_logged_in() || backdrop_session_started()) {
     backdrop_add_http_header(PWA_NO_CACHE_HEADER, 'no-store');
   }
 }
