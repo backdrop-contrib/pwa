@@ -1,7 +1,7 @@
 name = PWA
-description = Basic functionality for a Progressive Web App.
+description = Makes the site a Progressive Web App: installable, with offline pages.
 backdrop = 1.x
 type = module
+package = System
 
 configure = admin/config/system/pwa
-

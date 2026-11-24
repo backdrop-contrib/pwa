@@ -8,10 +8,37 @@
     "pwa_start_url": "/",
     "pwa_orientation": "portrait",
     "pwa_display": "standalone",
-    "pwa_icons": "",
-    "pwa_sw_registration_event": "windowonload",
-    "pwa_sw_cache_exclude": "",
-    "pwa_sw_cache_urls": "",
-    "pwa_sw_cache_version": "1",
-    "pwa_filecache_manifest": ""
+    "pwa_sw_cache_version": 1,
+    "pwa_sw_debug": false,
+    "pwa_sw_phonehome": true,
+    "pwa_sw_cache_exclude": "^/admin/.*\n^/user/reset/.*\n^/pwa/.*",
+    "pwa_sw_precache_page": "",
+    "pwa_sw_precache_asset": "",
+    "pwa_sw_patterns_page": "",
+    "pwa_sw_asset_config": {
+        "image": {
+            "strategy": "CacheFirst",
+            "limitMaxSize": true,
+            "maxSize": 350,
+            "external": false
+        },
+        "script": {
+            "strategy": "StaleWhileRevalidate",
+            "limitMaxSize": false,
+            "maxSize": 500,
+            "external": true
+        },
+        "style": {
+            "strategy": "StaleWhileRevalidate",
+            "limitMaxSize": false,
+            "maxSize": 300,
+            "external": true
+        },
+        "font": {
+            "strategy": "CacheFirst",
+            "limitMaxSize": false,
+            "maxSize": 1000,
+            "external": true
+        }
+    }
 }

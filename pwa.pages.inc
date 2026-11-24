@@ -1,71 +1,28 @@
 <?php
 /**
  * @file
+ * Page callbacks for the PWA module.
  */
 
 /**
- * Deliver the JS for the service worker.
+ * Page callback: the page shown when there is no connection.
  *
- * Adds a Service-Worker-Allowed header so that a file served from
- * '/pwa/serviceworker/js' can have a scope of '/'.
- */
-function pwa_deliver_js_file($page_callback_result) {
-  backdrop_add_http_header('Content-Type', 'application/javascript');
-  backdrop_add_http_header('Content-Disposition', 'inline; filename="serviceworker.js"');
-  backdrop_add_http_header('Service-Worker-Allowed', base_path());
-  print $page_callback_result;
-}
-
-/**
- * Returns the JS of the service worker.
- *
- * @return mixed
- */
-function pwa_serviceworker_file_data($version = 1) {
-  $data = cache_get('pwa:serviceworker', 'cache');
-  if ($data) {
-    $data = $data->data;
-  }
-  else {
-    $data = _pwa_serviceworker_file();
-    cache_set('pwa:serviceworker', $data, 'cache');
-  }
-
-  return $data;
-}
-
-
-/**
- * Default page when for when the user has no connection.
- *
- * @todo template like maintenance page?
- *
- * @return string
+ * The service worker caches this page anonymously and shows it in place of
+ * any page it can't fetch or find in its cache.
  */
 function pwa_offline_page() {
+  backdrop_set_title(t('You are offline'));
   return [
-    '#theme' => 'html_tag',
-    '#tag' => 'h1',
-    '#value' => 'You are offline.',
-    '#attributes' => [
-      'data-backdrop-pwa-offline' => TRUE,
-    ],
+    '#markup' => '<p data-backdrop-pwa-offline>' . t('This page is not available offline. It will load again when you are back online.') . '</p>',
   ];
 }
 
-
 /**
- * Route to confirm for SW that module is still active.
+ * Page callback: tells the service worker that it may stay installed.
  *
- * @return string
+ * @return array
+ *   A small array, delivered as JSON.
  */
 function pwa_module_active() {
-  return [
-    '#theme' => 'html_tag',
-    '#tag' => 'h1',
-    '#value' => 'PWA module is installed.',
-    '#attributes' => [
-      'data-backdrop-pwa-active' => TRUE,
-    ],
-  ];
+  return ['pwa' => 'ok'];
 }

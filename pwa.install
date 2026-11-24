@@ -1,42 +1,62 @@
 <?php
 /**
  * @file
+ * Install, update and uninstall functions for the PWA module.
  */
 
 /**
  * Implements hook_requirements().
  */
 function pwa_requirements($phase) {
-  $requirements =[];
-
+  $requirements = [];
   if ($phase !== 'runtime') {
     return $requirements;
   }
-
   $t = get_t();
-  if ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || (isset($_SERVER["REQUEST_SCHEME"]) && $_SERVER["REQUEST_SCHEME"] === 'https')) {
-    $requirements['pwa'] = array(
+
+  $https = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on')
+    || (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] === 'https');
+  $host = preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST']);
+  if ($https) {
+    $requirements['pwa'] = [
       'title' => $t('Progressive Web App'),
       'value' => $t('HTTPS on'),
       'severity' => REQUIREMENT_OK,
-      'description' => $t('Please make sure the certificate of %domain is valid for offline functionality to work.', ['%domain' => $_SERVER['HTTP_HOST']]),
-    );
+      'description' => $t('Make sure the certificate for %domain is valid, or the service worker will not install.', ['%domain' => $host]),
+    ];
   }
-  elseif (in_array($_SERVER['HTTP_HOST'], ['localhost' => '127.0.0.1'])) {
-    $requirements['pwa'] = array(
+  elseif (in_array($host, ['localhost', '127.0.0.1'], TRUE)) {
+    $requirements['pwa'] = [
       'title' => $t('Progressive Web App'),
       'value' => 'localhost',
       'severity' => REQUIREMENT_WARNING,
-      'description' => $t('You will need to configure HTTPS on your production site for the Progressive Web App to function.'),
-    );
+      'description' => $t('Browsers allow service workers on localhost without HTTPS, but your live site will need HTTPS.'),
+    ];
   }
   else {
-    $requirements['pwa'] = array(
+    $requirements['pwa'] = [
       'title' => $t('Progressive Web App'),
       'value' => $t('HTTPS off'),
       'severity' => REQUIREMENT_ERROR,
-      'description' => $t('HTTPS needs to be configured to enable your Progressive Web App. Without a secure connection, the Service Worker will not install itself.'),
-    );
+      'description' => $t('The service worker will not install without HTTPS.'),
+    ];
+  }
+
+  $manifest = pwa_file_data('manifest');
+  $sizes = [];
+  foreach ($manifest['icons'] as $icon) {
+    if (isset($icon['sizes'])) {
+      $sizes = array_merge($sizes, explode(' ', $icon['sizes']));
+    }
+  }
+  $missing = array_diff(['192x192', '512x512'], $sizes);
+  if ($missing) {
+    $requirements['pwa_icons'] = [
+      'title' => $t('Progressive Web App icons'),
+      'value' => $t('Missing %sizes', ['%sizes' => implode(', ', $missing)]),
+      'severity' => REQUIREMENT_ERROR,
+      'description' => $t('The manifest needs a 192x192 and a 512x512 icon for the app to be installable.'),
+    ];
   }
 
   return $requirements;
@@ -46,40 +66,24 @@ function pwa_requirements($phase) {
  * Implements hook_install().
  */
 function pwa_install() {
-  $directory = file_default_scheme() . '://pwa';
-  file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
-
-  // So that we do not add duplicate /'s to the "URLs to cache on install" form, let's simply clear
-  // this value before setting it into our config, if it is already '/'.
-  $start_url = config_get('pwa.settings', 'pwa_start_url');
-  if ($start_url == '/') {
-    $start_url = '';
-  }
-
+  $site_name = config_get('system.core', 'site_name');
   $config = config('pwa.settings');
-  $config->set('pwa_sw_cache_exclude', implode("\n", PWA_SW_CACHE_EXCLUDE));
-  $config->set('pwa_sw_cache_urls', trim(implode("\n", ['/', '/offline', $start_url])));
-  $config->set('name', config_get('system.core', 'site_name'));
-  $config->set('short_name', config_get('system.core', 'site_name'));
+  $config->set('pwa_name', $site_name);
+  $config->set('pwa_short_name', $site_name);
   $config->save();
-  pwa_flush_caches();
 
-  // Give permissions to anonymous and authenicated users
   user_role_grant_permissions(BACKDROP_ANONYMOUS_ROLE, ['access pwa']);
-  user_role_grant_permissions(BACKDROP_AUTHENTICATED_ROLE, ['access pwa']);  
+  user_role_grant_permissions(BACKDROP_AUTHENTICATED_ROLE, ['access pwa']);
 }
 
 /**
  * Implements hook_uninstall().
  */
 function pwa_uninstall() {
-  cache_clear_all('variables', 'cache_bootstrap');
-
-  // Delete manifest.json
-  $scheme = file_default_scheme();
-  $directory =  $scheme . '://pwa';
-  $path = $directory . '/manifest.json';
-  file_unmanaged_delete($path);
+  config('pwa.settings')->delete();
+  cache_clear_all('pwa:', 'cache', TRUE);
+  // Remove the manifest file left by 1.x, if it is still there.
+  file_unmanaged_delete('public://pwa/manifest.json');
 }
 
 /**
@@ -97,24 +101,158 @@ function pwa_update_1000() {
   $config->set('pwa_orientation', update_variable_get('pwa_orientation', 'portrait'));
   $config->set('pwa_display', update_variable_get('pwa_display', 'standalone'));
   $config->set('pwa_icons', update_variable_get('pwa_icons', ''));
-  $config->set('pwa_sw_registration_event', update_variable_get('pwa_sw_registration_event', PWA_SW_REGISTRATION_EVENT_DEFAULT));
-  $config->set('pwa_sw_cache_exclude', update_variable_get('pwa_sw_cache_exclude', PWA_SW_CACHE_EXCLUDE));
+  $config->set('pwa_sw_registration_event', update_variable_get('pwa_sw_registration_event', 'windowonload'));
+  $cache_exclude = update_variable_get('pwa_sw_cache_exclude', "admin/.*\nuser/reset/.*");
+  if (is_array($cache_exclude)) {
+    $cache_exclude = implode("\n", $cache_exclude);
+  }
+  $config->set('pwa_sw_cache_exclude', $cache_exclude);
   $config->set('pwa_sw_cache_urls', update_variable_get('pwa_sw_cache_urls', ''));
   $config->set('pwa_sw_cache_version', update_variable_get('pwa_sw_cache_version', '1'));
   $config->set('pwa_filecache_manifest', update_variable_get('pwa_filecache_manifest', ''));
+  $config->save();
 
-  update_variable_del('pwa_short_name');
-  update_variable_del('pwa_name');
-  update_variable_del('pwa_description');
-  update_variable_del('pwa_background_color');
-  update_variable_del('pwa_theme_color');
-  update_variable_del('pwa_start_url');
-  update_variable_del('pwa_orientation');
-  update_variable_del('pwa_display');
-  update_variable_del('pwa_icons');
-  update_variable_del('pwa_sw_registration_event');
-  update_variable_del('pwa_sw_cache_exclude');
-  update_variable_del('pwa_sw_cache_urls');
-  update_variable_del('pwa_sw_cache_version');
-  update_variable_del('pwa_filecache_manifest');
+  $names = [
+    'pwa_short_name', 'pwa_name', 'pwa_description', 'pwa_background_color',
+    'pwa_theme_color', 'pwa_start_url', 'pwa_orientation', 'pwa_display',
+    'pwa_icons', 'pwa_sw_registration_event', 'pwa_sw_cache_exclude',
+    'pwa_sw_cache_urls', 'pwa_sw_cache_version', 'pwa_filecache_manifest',
+  ];
+  foreach ($names as $name) {
+    update_variable_del($name);
+  }
+}
+
+/**
+ * Move the app names saved under the wrong keys at install, and fix the
+ * cache exclude list if it was saved as an array.
+ */
+function pwa_update_1001() {
+  $config = config('pwa.settings');
+
+  foreach (['name' => 'pwa_name', 'short_name' => 'pwa_short_name'] as $old => $new) {
+    $value = $config->get($old);
+    if ($value !== NULL) {
+      if ($config->get($new) === '' || $config->get($new) === NULL) {
+        $config->set($new, $value);
+      }
+      $config->clear($old);
+    }
+  }
+
+  $cache_exclude = $config->get('pwa_sw_cache_exclude');
+  if (is_array($cache_exclude)) {
+    $config->set('pwa_sw_cache_exclude', implode("\n", $cache_exclude));
+  }
+
+  $config->save();
+}
+
+/**
+ * Upgrade the PWA settings from 1.x to 2.x.
+ */
+function pwa_update_1200() {
+  $config = config('pwa.settings');
+
+  // Exclude patterns: 1.x matched them anywhere in the full URL; 2.x matches
+  // the path within the site, so anchor them at the start of the path.
+  $exclude = [];
+  $old = $config->get('pwa_sw_cache_exclude');
+  if (is_array($old)) {
+    $old = implode("\n", $old);
+  }
+  foreach (preg_split("/\r\n|\n|\r/", (string) $old) as $pattern) {
+    $pattern = trim($pattern);
+    if ($pattern === '') {
+      continue;
+    }
+    if ($pattern[0] !== '^') {
+      $pattern = '^' . ($pattern[0] === '/' ? '' : '/') . $pattern;
+    }
+    $exclude[] = $pattern;
+  }
+  $exclude[] = '^/pwa/.*';
+  $config->set('pwa_sw_cache_exclude', implode("\n", array_unique($exclude)));
+
+  // "URLs to cache on install" become precached pages. The start page and
+  // the offline page are always precached in 2.x.
+  $precache = [];
+  foreach (preg_split("/\r\n|\n|\r/", (string) $config->get('pwa_sw_cache_urls')) as $path) {
+    $path = trim($path);
+    if ($path === '' || in_array($path, ['/', '/offline'], TRUE)) {
+      continue;
+    }
+    $precache[] = '/' . ltrim($path, '/');
+  }
+  $config->set('pwa_sw_precache_page', implode("\n", $precache));
+
+  // New settings.
+  $config->set('pwa_sw_cache_version', max(1, (int) $config->get('pwa_sw_cache_version')));
+  $config->set('pwa_sw_debug', FALSE);
+  $config->set('pwa_sw_phonehome', TRUE);
+  $config->set('pwa_sw_precache_asset', '');
+  $config->set('pwa_sw_patterns_page', '');
+  $config->set('pwa_sw_asset_config', [
+    'image' => [
+      'strategy' => 'CacheFirst',
+      'limitMaxSize' => TRUE,
+      'maxSize' => 350,
+      'external' => FALSE,
+    ],
+    'script' => [
+      'strategy' => 'StaleWhileRevalidate',
+      'limitMaxSize' => FALSE,
+      'maxSize' => 500,
+      'external' => TRUE,
+    ],
+    'style' => [
+      'strategy' => 'StaleWhileRevalidate',
+      'limitMaxSize' => FALSE,
+      'maxSize' => 300,
+      'external' => TRUE,
+    ],
+    'font' => [
+      'strategy' => 'CacheFirst',
+      'limitMaxSize' => FALSE,
+      'maxSize' => 1000,
+      'external' => TRUE,
+    ],
+  ]);
+
+  // The start page is now a path; 1.x accepted anything.
+  $start_url = (string) $config->get('pwa_start_url');
+  if ($start_url === '' || $start_url[0] !== '/') {
+    $config->set('pwa_start_url', '/' . ltrim($start_url, '/'));
+  }
+
+  // Settings 1.x had that 2.x doesn't use.
+  $unused = [
+    'pwa_icons',
+    'pwa_sw_registration_event',
+    'pwa_sw_cache_urls',
+    'pwa_filecache_manifest',
+    'name',
+    'short_name',
+  ];
+  foreach ($unused as $key) {
+    $config->clear($key);
+  }
+  $config->save();
+
+  // The manifest is now served from /manifest.webmanifest.
+  file_unmanaged_delete('public://pwa/manifest.json');
+}
+
+/**
+ * Split the 'administer pwa' permission into manifest and service worker
+ * permissions.
+ */
+function pwa_update_1201() {
+  foreach (user_roles(FALSE, 'administer pwa') as $role_name => $label) {
+    user_role_grant_permissions($role_name, [
+      'administer pwa manifest',
+      'administer pwa serviceworker',
+    ]);
+    user_role_revoke_permissions($role_name, ['administer pwa']);
+  }
 }

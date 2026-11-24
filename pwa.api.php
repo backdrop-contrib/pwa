@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  * Hooks provided by the Progressive Web App module.
@@ -11,59 +10,73 @@
  */
 
 /**
- * Manually alter manifest.json
+ * Alter the web app manifest.
  *
- * This hook allows manual configuration of the manifest.json file. Some of the
- * options can be configured in the admin settings of the module, but it can all
- * be altered within the hook.
+ * The manifest is served from /manifest.webmanifest and cached; it is rebuilt
+ * when the PWA settings are saved or caches are cleared.
  *
- * After you make your modifications you do NOT need to return the results.
- * Since $manifest is passed by reference, any changes made to $manifest are
- * automatically registered.
+ * @param array $manifest
+ *   The manifest, as an array that will be JSON-encoded.
  *
- * @param array &$manifest Modified options that are used to build manifest.json
+ * @see https://developer.mozilla.org/en-US/docs/Web/Manifest
  */
-function hook_pwa_manifest_alter(&$manifest) {
-  // Change a string-based property.
-  $manifest['name'] = config_get('pwa.settings', 'pwa_name');
-
-  // Change array-based properties. In this case we're manually specifying which
-  // icons will appear in the manifest. Normally you have to specify each size
-  // listed here to meet criteria for "Add to Homescreen"
+function hook_pwa_manifest_alter(array &$manifest) {
+  // Use your own icons. A 192x192 and a 512x512 icon are needed for the app
+  // to be installable. 'maskable' icons keep their important content inside
+  // the central 80% circle, so devices can crop them to any shape.
+  $path = backdrop_get_path('theme', 'MY_THEME');
   $manifest['icons'] = [
     [
-      'src' => url(backdrop_get_path('theme', 'MY_THEME') . '/assets/logo-512.png'),
-      'sizes' => '512x512',
-      'type' => 'image/png',
-    ],
-    [
-      'src' => url(backdrop_get_path('theme', 'MY_THEME') . '/assets/logo-192.png'),
+      'src' => file_create_url($path . '/images/icon-192.png'),
       'sizes' => '192x192',
       'type' => 'image/png',
+      'purpose' => 'any',
     ],
     [
-      'src' => url(backdrop_get_path('theme', 'MY_THEME') . '/assets/logo-144.png'),
-      'sizes' => '144x144',
+      'src' => file_create_url($path . '/images/icon-512.png'),
+      'sizes' => '512x512',
       'type' => 'image/png',
+      'purpose' => 'any',
     ],
     [
-      'src' => url(backdrop_get_path('theme', 'MY_THEME') . '/assets/logo.svg'),
-      'type' => 'image/svg+xml',
+      'src' => file_create_url($path . '/images/icon-maskable-512.png'),
+      'sizes' => '512x512',
+      'type' => 'image/png',
+      'purpose' => 'maskable',
     ],
   ];
 
-  // Add a new parameter
-  //
-  // Here we are specifying `orientation`. If your website is designed to be
-  // viewed ONLY in landscape, the `orientation` setting can help the PWA look
-  // good while the splash/loading screens are displaying.
-  //
-  // We omit this property by default from the module for accessibility reasons.
-  // For more information see the d.o issue and WCAG documentation:
-  //
-  // @see https://www.drupal.org/project/pwa/issues/3070058
-  // @see https://www.w3.org/WAI/WCAG21/Understanding/orientation.html
-  $manifest['orientation'] = 'landscape';
+  // Add any other manifest member.
+  $manifest['categories'] = ['education'];
+}
+
+/**
+ * Alter the settings passed to the service worker.
+ *
+ * @param array $settings
+ *   The settings, JSON-encoded into the service worker. Keys include
+ *   'version', 'debug', 'basePath', 'cache' (exclude, precache, patterns,
+ *   assets, offline) and 'phonehome'.
+ */
+function hook_pwa_serviceworker_data_alter(array &$settings) {
+  // Always precache a page.
+  $settings['cache']['precache']['page'][] = url('contact');
+}
+
+/**
+ * Alter the scripts the service worker imports.
+ *
+ * Use this to add your own service worker code. Scripts are imported in
+ * order; 'cache' sets up the Workbox routes, so add code that registers its
+ * own fetch routes before it. Workbox (core, routing, strategies,
+ * expiration) is available as the global 'workbox' from 'workbox-core' on.
+ *
+ * @param array $scripts
+ *   Script paths relative to the Backdrop root, keyed by name. A NULL value
+ *   is skipped.
+ */
+function hook_pwa_serviceworker_script_alter(array &$scripts) {
+  $scripts['mymodule'] = backdrop_get_path('module', 'mymodule') . '/js/serviceworker.js';
 }
 
 /**
